@@ -1,0 +1,26 @@
+# Local development database. Port 5433 so it never collides with the Homebrew Postgres
+# other projects on this machine use.
+#
+#   docker compose up -d
+#   pnpm db:migrate
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: courte-postgres
+    environment:
+      POSTGRES_USER: courte
+      POSTGRES_PASSWORD: courte
+      POSTGRES_DB: courte
+    ports:
+      - '5433:5432'
+    volumes:
+      - courte_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U courte']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  courte_pgdata:
