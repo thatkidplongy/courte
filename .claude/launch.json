@@ -2,10 +2,16 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "courte",
+      "name": "courte-web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": ["--filter", "@courte/web", "dev"],
       "port": 3000
+    },
+    {
+      "name": "courte-api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@courte/api", "dev"],
+      "port": 4000
     }
   ]
 }

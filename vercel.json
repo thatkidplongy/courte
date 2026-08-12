@@ -1,7 +1,0 @@
-{
-  "crons": [
-    { "path": "/api/jobs/sweep-holds", "schedule": "* * * * *" },
-    { "path": "/api/jobs/expire-offers", "schedule": "*/5 * * * *" },
-    { "path": "/api/jobs/extend-horizons", "schedule": "0 3 * * *" }
-  ]
-}

@@ -7,7 +7,15 @@
   "arrowParens": "avoid",
   "endOfLine": "lf",
   "plugins": ["@ianvs/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
-  "importOrder": ["^(react|react-dom)(.*)$", "<THIRD_PARTY_MODULES>", "^@/(.*)$", "^[./]"],
-  "importOrderSeparation": true,
-  "importOrderSortSpecifiers": true
+  "importOrder": [
+    "^(react|react-dom)(.*)$",
+    "",
+    "<THIRD_PARTY_MODULES>",
+    "",
+    "^@courte/(.*)$",
+    "",
+    "^@/(.*)$",
+    "",
+    "^[./]"
+  ]
 }

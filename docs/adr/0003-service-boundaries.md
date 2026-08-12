@@ -1,7 +1,12 @@
 # ADR 0003 — Modular monolith with a framework-free domain core
 
-Status: accepted
+Status: superseded by [ADR 0004](0004-extracted-api-service.md) on 2026-08-13
 Date: 2026-08-08
+
+> The deployment decision below no longer holds: the backend now runs as its own NestJS
+> service. The framework-free domain core does hold, and moved to `apps/api/src/domain`
+> unchanged — the seam this ADR argued for is exactly what made that move mechanical. ADR 0004
+> records what changed and why the cost calculation below came out differently.
 
 ## Context
 
