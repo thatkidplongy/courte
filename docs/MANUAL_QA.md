@@ -164,6 +164,28 @@ that render an existing booking do not, so history survives.
 | H6  | Blackout over free time                                  | Chips hole appears publicly                                                              |
 | H7  | Blackout over a sold slot                                | Refused: "Existing bookings overlap that period"                                         |
 
+## H′ — Courts & pricing (owner)
+
+Sign in as `owner@elroi.test` and open **Courts & pricing** in the venue rail. Court A starts
+with a ₱300 standing rate and five weekday peaks of ₱450, 17:00–22:00.
+
+| #    | Do                                                                       | Expect                                                                                              |
+| ---- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| H′1  | The rate card                                                            | 6 rules; the peaks read "Monday, 17:00–22:00" … priority 10; the standing rate "Every day, all day" |
+| H′2  | Add ₱900, first and last date both 2026-12-25, priority 20               | Saved; the card now shows "on 2026-12-25"                                                           |
+| H′3  | Open the public court page for 25 Dec                                    | **₱900** in every Court A cell — Courts B and C are untouched at ₱300                               |
+| H′4  | Same page for 26 Dec                                                     | Back to ₱300. A dated rule applies on its dates and nowhere else                                    |
+| H′5  | Add the same rule again at the same priority                             | Refused: "That overlaps an existing rule at the same priority (900 per hour)…"; still 7 rules       |
+| H′6  | Add it at priority 30 instead                                            | Allowed — different priorities are the mechanism, not a conflict                                    |
+| H′7  | Add a rate with From 22:00 and Until 02:00                               | Refused per-field: "For an overnight rate, add two rules"                                           |
+| H′8  | A booking on Court A that already exists, after any rate change          | Its total is unchanged. `rate_snapshot` is what it was sold at, and is never recomputed             |
+| H′9  | Opening hours: shorten every day to close at 19:00, with a 20:00 booking | Refused, naming the slot: "would leave 1 booked slot outside them (Sun 16 Aug, 20:00)"              |
+| H′10 | Close at 22:00 instead                                                   | Saved; all seven days come back with the new duration                                               |
+| H′11 | Untick Sunday and save                                                   | Sunday has no window; the public grid for a Sunday shows the day as closed, not as booked           |
+| H′12 | Archive Court C                                                          | Still listed for the owner, flagged **Archived**; gone from public search and the venue grid        |
+| H′13 | Restore it                                                               | Back everywhere. There is no delete button, and that is deliberate — see CONVENTIONS.md             |
+| H′14 | As `owner@point21.test`, open El Roi's courts URL                        | **404** — not 403. An outsider cannot tell a real venue from a fabricated one                       |
+
 ## I — Jobs (now in the API process)
 
 There is nothing to curl. `@nestjs/schedule` runs all three inside `apps/api`: hold sweep every
@@ -192,7 +214,7 @@ a valid token returns 400 with per-field messages under `errors`.
 pnpm test && pnpm typecheck && pnpm lint && pnpm build
 ```
 
-63 unit tests, all in `apps/api`. Two boundary lints must hold: domain code importing Nest,
+104 unit tests in `apps/api` and 95 in `apps/web`. Two boundary lints must hold: domain code importing Nest,
 Express or a driver fails, and **anything in `apps/web` importing `pg` or an ORM fails** — that
 second rule is what keeps the web app from quietly growing a second connection pool.
 
@@ -208,16 +230,21 @@ Things a tester should NOT expect to find, so their absence isn't mistaken for a
   `claimed` and simply lapses back/expires. Functionally fine, cosmetically loose.
 - **Series payments** — the ledger supports paying a whole series (`payments.series_id`);
   the dashboard only records per-occurrence payments.
-- **Venue/court/pricing CRUD** — venues, courts, hours, price rules, photos and amenities are
-  all seed-only; owners cannot edit any of them in the UI. This is step 2 of
-  `docs/BACKEND_PLAN.md`.
+- **Venue profile, photo and amenity editing** — courts, opening hours and price rules are now
+  owner-editable (see H′), but the venue's own description, contact details, photos and
+  amenities are still seed-only.
+- **Member rates** — `price_rules.member_only` exists and is deliberately absent from the
+  pricing form: every caller quotes with `isMember: false` until venue passes are built, so
+  such a rule could never fire. Step 6 of `docs/BACKEND_PLAN.md`.
+- **Editing a price rule in place** — the API has `PUT …/price-rules/:ruleId` and it is tested;
+  the screen only adds and removes. Changing a rate means removing one and adding another.
 - **Photo upload** — `venue_photos` exists and every surface renders from it, but there is no
   object storage and no upload endpoint, so the table is empty and everything shows the glyph
   fallback. A photo URL that 404s renders as blank space rather than falling back, because
   catching that needs an onError handler and so a client component.
 - **Notifications** — waitlist offers appear in-app only; no email/SMS.
 - **Google OAuth** — pending real credentials; dev sign-in is the local path.
-- **Integration tests in CI, deploy** — not yet set up. The 63 unit tests cover the domain
+- **Integration tests in CI, deploy** — not yet set up. The 104 API unit tests cover the domain
   core; nothing yet exercises the HTTP surface automatically, which is a bigger gap after
   ADR 0004 than before it, because the controller/service layer is new code.
 - **Rate limiting** — `BACKEND_STANDARDS.md` requires it on auth endpoints. `POST /v1/identities`

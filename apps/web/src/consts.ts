@@ -110,6 +110,33 @@ export const AMENITY_CHIPS_PER_ROW = 3;
  */
 export const AMENITY_CACHE_SECONDS = 3600;
 
+/**
+ * 0 = Monday, matching `opening_windows.day_of_week` and `price_rules.day_of_week`. The offset
+ * is a database fact, so the labels are indexed the database's way rather than JavaScript's —
+ * translating in the middle is how an off-by-one gets in.
+ */
+export const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
+
+export type Weekday = (typeof WEEKDAYS)[number];
+
+/** Keyed on the literal days rather than `number`, so an index can never come back undefined. */
+export const WEEKDAY_LABELS: Record<Weekday, string> = {
+  0: 'Monday',
+  1: 'Tuesday',
+  2: 'Wednesday',
+  3: 'Thursday',
+  4: 'Friday',
+  5: 'Saturday',
+  6: 'Sunday',
+};
+
+/**
+ * The wire type says `number` because JSON has no narrower one; the database's CHECK constraint
+ * says 0–6. The fallback is therefore unreachable, and exists so a bad row surfaces as a visibly
+ * wrong label rather than as `undefined` rendered into the page.
+ */
+export const formatWeekday = (day: number): string => WEEKDAY_LABELS[day as Weekday] ?? `Day ${day}`;
+
 export const BOOKING_PERIOD_LABELS = {
   upcoming: 'Upcoming',
   past: 'Past',

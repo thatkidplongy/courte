@@ -54,7 +54,9 @@ own:
 Star ratings, review counts and "top rated" have **no data behind them** — there is no reviews
 table yet. They are left out rather than mocked, because a fabricated 4.9 next to a real
 venue's name is a lie with that venue's name attached. Same reasoning for the venue nav: the
-rail lists Overview alone because the other six sections in the mockup have no route.
+rail carries Overview and Courts & pricing, and will carry the mockup's other five sections
+when they have routes. A nav item that navigates nowhere makes the whole rail untrustworthy,
+so the list in `lib/venueNav.ts` grows as the routes do.
 
 Two more, for the record: the dashboard has no period-over-period deltas and no revenue time
 series (both need aggregate queries that do not exist yet), and the booking summary panel shows
@@ -94,6 +96,51 @@ than insert:
 INSERT INTO venue_amenities (venue_id, amenity_slug) VALUES ($1, $2)
 ON CONFLICT (venue_id, amenity_slug) DO UPDATE SET deleted_at = NULL
 ```
+
+## Pricing
+
+A court's price is a set of rules, and the highest-priority rule matching a given moment wins.
+A rule may narrow on weekday, on a time window, and on a date range — each independently, each
+optional, so one mechanism covers a standing rate, a weekday evening peak, a public holiday and
+a price rise effective next month.
+
+Three rules decide the arguments:
+
+1. **A booking is cut into segments and each is priced on its own.** `resolveQuote` cuts at
+   every rule window edge and at local midnight, so a 21:00–23:00 booking crossing a 22:00
+   boundary genuinely pays peak for one hour and base for the other. Date-scoped rules needed
+   no new cut points — a rule can only start or stop applying at a local midnight, and the
+   segmenting already cuts there.
+2. **A booking never recomputes its price.** The segments are stored on it as `rate_snapshot`
+   at quote time. Editing the rate card cannot change what anyone has already been charged,
+   and there must never be a "recalculate" path that makes it possible. The rate at time of
+   sale is a different fact from today's rate, not a stale copy of it.
+3. **Ambiguity is refused at write time.** Two rules matching the same moment at the same
+   priority mean the court has two prices and no rule for choosing. `assertNoRuleConflict`
+   rejects the pair on save; `resolveQuote` still breaks ties on id so the existing rows
+   behave predictably, but that is a floor, not the answer.
+
+Everything comparing dates or times does so in **venue-local** terms. A holiday rate compared
+in UTC moves by up to a day for any venue east of Greenwich, which is all of them.
+
+`member_only` is in the schema and is deliberately **not** offered in the pricing form: every
+caller resolves quotes with `isMember: false` until venue passes exist, so such a rule could
+never fire. See step 6 of [`docs/BACKEND_PLAN.md`](docs/BACKEND_PLAN.md).
+
+### Writes that are refused
+
+The owner API says no in three places, and each is a case where succeeding quietly is worse
+than an error:
+
+| Attempt                                                    | Why it is refused                                                                     |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| A price rule overlapping another at the same priority      | Two prices, no tie-break anyone can explain to a customer                             |
+| Opening hours that would leave a sold booking outside them | The venue would have sold a time it no longer admits to being open                    |
+| Deleting a court                                           | `reservations.court_id` cascades — it would take paid bookings' slots. Courts archive |
+
+Deleting a **price rule** is a real delete, and the only one in the inventory. A rule is a
+statement about the future; bookings already sold carry their own snapshot and never read the
+table again, so removing one cannot rewrite anything that has happened.
 
 ## Flex and grid minimums
 

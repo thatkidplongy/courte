@@ -1,1 +1,1 @@
-export { VenueSidebar, type VenueNavItem } from './VenueSidebar';
+export { VenueSidebar } from './VenueSidebar';

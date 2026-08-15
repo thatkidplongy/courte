@@ -121,7 +121,9 @@ CREATE TABLE opening_windows (
 );
 CREATE INDEX opening_windows_court_idx ON opening_windows (court_id, day_of_week);
 
--- Highest priority matching rule wins. NULL means "any".
+-- Highest priority matching rule wins; NULL means "any". valid_from/valid_to scope a rule to
+-- calendar dates — a holiday, a promotion, or a price rise — and are compared in venue-local
+-- time. Two rules that match the same moment at the same priority are refused on save.
 CREATE TABLE price_rules (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   court_id            uuid NOT NULL REFERENCES courts(id) ON DELETE CASCADE,
@@ -129,10 +131,18 @@ CREATE TABLE price_rules (
   day_of_week         smallint CHECK (day_of_week BETWEEN 0 AND 6),
   starts_at           time,
   ends_at             time,
+  valid_from          date,                    -- inclusive; null is unbounded in that direction
+  valid_to            date,
   member_only         boolean NOT NULL DEFAULT false,
-  rate_per_hour_cents int NOT NULL CHECK (rate_per_hour_cents >= 0)
+  rate_per_hour_cents int NOT NULL CHECK (rate_per_hour_cents >= 0),
+  CHECK (valid_from IS NULL OR valid_to IS NULL OR valid_to >= valid_from),
+  -- An overnight window is not supported anywhere in the stack; two rules express one.
+  CHECK (starts_at IS NULL OR ends_at > starts_at)
 );
-CREATE INDEX price_rules_court_idx ON price_rules (court_id, priority DESC);
+-- The secondary ordering is load-bearing: without it two equal-priority rules resolve in
+-- whatever order Postgres felt like, and a court could quote differently between two
+-- identical requests.
+CREATE INDEX price_rules_court_idx ON price_rules (court_id, priority DESC, created_at DESC, id);
 
 -- ------------------------------------------------------------------ intent
 

@@ -7,9 +7,10 @@ Postgres before it can, and the order to build it in.
 It is written page by page, because that is where the requirements actually are. The schema
 section is downstream of it, not the other way round.
 
-> **Status:** step 1 (venue identity) is built — migrations `20260815090000` through
-> `20260815090400`. Court surface is an enum, venues carry a profile, and photos and amenities
-> are real tables filtered in SQL. Steps 2 to 8 remain.
+> **Status:** steps 1 and 2 are built — migrations `20260815090000` through
+> `20260815100000`. Court surface is an enum, venues carry a profile, photos and amenities are
+> real tables filtered in SQL, and price rules are date-scoped, deterministic and owner-editable
+> from the venue console. Steps 3 to 8 remain.
 >
 > One decision changed during step 1: **archiving is `deleted_at`, repo-wide**, not an
 > `archived_at` on courts alone. `venues`, `courts`, `venue_photos`, `amenities` and
@@ -455,7 +456,7 @@ Ordered by how much each step stops a page from lying.
 | #   | Step                                                                             | Migrations     | Screens       |
 | --- | -------------------------------------------------------------------------------- | -------------- | ------------- |
 | 1   | **Done** — venue identity: surface enum, profile, photos, amenities, soft delete | M1, M2, M3, M6 | 1a, 1b, 1c    |
-| 2   | Pricing and schedule management — date-scoped rules, ambiguity fix, owner CRUD   | M5a, M5c, M5d  | 1f            |
+| 2   | **Done** — pricing and hours: date-scoped rules, ambiguity fix, owner CRUD       | M5a, M5c, M5d  | 1f            |
 | 3   | Reviews and ratings — table, view, `sort=rating`, top-rated badge                | M4             | 1b, 1c        |
 | 4   | Dashboard analytics and staff — revenue series, deltas, no-show, staff admin     | —              | 1f            |
 | 5   | Location — search areas and browser geolocation                                  | M7             | 1a, 1b        |

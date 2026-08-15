@@ -57,7 +57,7 @@ type RequestOptions = {
   userId?: string;
   /** Service-to-service credential, for the identity endpoint only. */
   serviceKey?: boolean;
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
   /** Next's fetch cache directives. Reads that must reflect a just-completed write pass 0. */
   revalidate?: number | false;

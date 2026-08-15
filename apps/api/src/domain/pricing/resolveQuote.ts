@@ -27,6 +27,13 @@ export type PriceRule = {
   /** 'HH:mm' or 'HH:mm:ss' venue-local; null (with endsAt null) matches any time. */
   startsAt: string | null;
   endsAt: string | null;
+  /**
+   * 'yyyy-MM-dd' venue-local calendar bounds, inclusive at both ends and independently
+   * nullable. `validFrom` alone is a price rise, `validTo` alone a promotion, both equal a
+   * single holiday, neither the standing rule.
+   */
+  validFrom: string | null;
+  validTo: string | null;
   memberOnly: boolean;
   ratePerHourCents: number;
 };
@@ -61,6 +68,13 @@ const localMinuteOfDay = (dt: DateTime): number => dt.hour * 60 + dt.minute;
 
 const ruleMatchesSegment = (rule: PriceRule, segmentStart: DateTime, isMember: boolean): boolean => {
   if (rule.memberOnly && !isMember) return false;
+
+  // Compared as venue-local calendar dates, and string comparison is exact for 'yyyy-MM-dd'.
+  // Doing this in UTC would move a holiday rate by up to a day for any venue east of Greenwich,
+  // which is all of them.
+  const localDate = segmentStart.toFormat('yyyy-MM-dd');
+  if (rule.validFrom !== null && localDate < rule.validFrom) return false;
+  if (rule.validTo !== null && localDate > rule.validTo) return false;
 
   if (rule.dayOfWeek !== null && rule.dayOfWeek !== segmentStart.weekday - 1) return false;
 
@@ -103,7 +117,12 @@ export const resolveQuote = (params: ResolveQuoteParams): Quote => {
     throw new ValidationError('A single booking cannot exceed 24 hours');
   }
 
-  const ranked = [...params.rules].sort((a, b) => b.priority - a.priority);
+  // Sorted here rather than trusting the caller's order, and with an explicit tie-break: a
+  // plain `b.priority - a.priority` on a stable sort preserves whatever order the rules
+  // arrived in, so two equal-priority rules would resolve differently depending on the query
+  // that fetched them. `id` is arbitrary but it is *fixed*, which is the property that matters
+  // — genuine ambiguity is refused at write time by assertNoRuleConflict.
+  const ranked = [...params.rules].sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
   const cuts = collectCutPoints(params);
   const segments: QuoteSegment[] = [];
 

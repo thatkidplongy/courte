@@ -5,21 +5,28 @@ import type {
   Amenity,
   BookingSummary,
   CourtAvailabilityResponse,
+  CourtPricingResponse,
   CourtSearchItem,
   CourtSort,
   CourtSurface,
   CreateSeriesBody,
   CreateSeriesResponse,
   JoinWaitlistBody,
+  OpeningWindowSummary,
+  OwnedCourt,
   Paginated,
   PlaceHoldBody,
   PlaceHoldResponse,
+  PriceRuleSummary,
   RecordPaymentBody,
   RecordPaymentResponse,
   RecordWalkInBody,
   RecordWalkInResponse,
+  ReplaceOpeningWindowsBody,
   Sport,
+  UpsertCourtBody,
   UpsertIdentityResponse,
+  UpsertPriceRuleBody,
   VenueDashboardResponse,
   VenueMembershipSummary,
   VenueScheduleResponse,
@@ -128,6 +135,51 @@ export const recordPayment = (
   body: RecordPaymentBody
 ): Promise<RecordPaymentResponse> =>
   apiFetch<RecordPaymentResponse>(`/venues/${venueId}/payments`, { method: 'POST', body, userId });
+
+/**
+ * Owner-side inventory. Every path is nested under the venue, because that is what the API
+ * authorises against — there is no way in by court id alone.
+ */
+export const fetchOwnedCourts = (userId: string, venueId: string): Promise<OwnedCourt[]> =>
+  apiFetch<OwnedCourt[]>(`/venues/${venueId}/courts`, { userId, revalidate: 0 });
+
+export const createCourt = (userId: string, venueId: string, body: UpsertCourtBody): Promise<{ courtId: string }> =>
+  apiFetch<{ courtId: string }>(`/venues/${venueId}/courts`, { method: 'POST', body, userId });
+
+export const updateCourt = (userId: string, venueId: string, courtId: string, body: UpsertCourtBody): Promise<void> =>
+  apiFetch<void>(`/venues/${venueId}/courts/${courtId}`, { method: 'PUT', body, userId });
+
+export const archiveCourt = (userId: string, venueId: string, courtId: string): Promise<void> =>
+  apiFetch<void>(`/venues/${venueId}/courts/${courtId}`, { method: 'DELETE', userId });
+
+export const restoreCourt = (userId: string, venueId: string, courtId: string): Promise<void> =>
+  apiFetch<void>(`/venues/${venueId}/courts/${courtId}/restore`, { method: 'POST', userId });
+
+export const fetchCourtPricing = (userId: string, venueId: string, courtId: string): Promise<CourtPricingResponse> =>
+  apiFetch<CourtPricingResponse>(`/venues/${venueId}/courts/${courtId}/pricing`, { userId, revalidate: 0 });
+
+export const createPriceRule = (
+  userId: string,
+  venueId: string,
+  courtId: string,
+  body: UpsertPriceRuleBody
+): Promise<PriceRuleSummary> =>
+  apiFetch<PriceRuleSummary>(`/venues/${venueId}/courts/${courtId}/price-rules`, { method: 'POST', body, userId });
+
+export const deletePriceRule = (userId: string, venueId: string, courtId: string, ruleId: string): Promise<void> =>
+  apiFetch<void>(`/venues/${venueId}/courts/${courtId}/price-rules/${ruleId}`, { method: 'DELETE', userId });
+
+export const replaceOpeningWindows = (
+  userId: string,
+  venueId: string,
+  courtId: string,
+  body: ReplaceOpeningWindowsBody
+): Promise<OpeningWindowSummary[]> =>
+  apiFetch<OpeningWindowSummary[]>(`/venues/${venueId}/courts/${courtId}/opening-windows`, {
+    method: 'PUT',
+    body,
+    userId,
+  });
 
 /**
  * Sign-in only, and the one call that carries the service key instead of a user token —

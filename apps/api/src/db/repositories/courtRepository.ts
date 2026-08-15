@@ -3,12 +3,14 @@ import {
   DEFAULT_PAGE,
   type CourtSort,
   type CourtSurface,
+  type OpeningWindowSummary,
   type Sport,
   type VenuePhoto,
 } from '@courte/contract';
 
-import { query } from '@/db/client';
+import { query, withTransaction } from '@/db/client';
 import type { OpeningWindow } from '@/domain/availability/types';
+import type { SoldSlot } from '@/domain/schedule/assertWindowsCoverBookings';
 
 /**
  * Repositories build and run queries and do nothing else. No branching on a flag parameter to
@@ -56,11 +58,23 @@ const toCourt = (row: CourtRow): Court => ({
   bufferMinutes: row.buffer_minutes,
 });
 
-/** Qualified with `c.`, because every read of them joins `venues` to check the venue is live. */
-const COURT_COLUMNS = `
-  c.id, c.venue_id, c.name, c.sport, c.surface,
-  c.min_duration_minutes, c.max_duration_minutes, c.increment_minutes, c.buffer_minutes
-`;
+const COURT_FIELDS = [
+  'id',
+  'venue_id',
+  'name',
+  'sport',
+  'surface',
+  'min_duration_minutes',
+  'max_duration_minutes',
+  'increment_minutes',
+  'buffer_minutes',
+] as const;
+
+/** Bare, for RETURNING clauses, which have no table to qualify against. */
+const COURT_COLUMNS_BARE = COURT_FIELDS.join(', ');
+
+/** Qualified, because every read of them joins `venues` to check the venue is live too. */
+const COURT_COLUMNS = COURT_FIELDS.map(field => `c.${field}`).join(', ');
 
 /**
  * Archived courts are invisible here and in every other read on this page. Both callers are
@@ -287,6 +301,106 @@ export const searchCourtsByProximity = async (
   return { courts, total: rows.length > 0 ? Number(rows[0]?.total_count ?? 0) : 0 };
 };
 
+/**
+ * The owner's view: archived courts included, flagged rather than hidden. Retiring a court is
+ * reversible, and a screen that simply stops showing it gives the owner no way to undo.
+ */
+export const findCourtsForOwner = async (venueId: string): Promise<Array<Court & { isArchived: boolean }>> => {
+  const rows = await query<CourtRow & { deleted_at: string | null }>(
+    `
+    SELECT ${COURT_COLUMNS}, c.deleted_at
+    FROM courts c
+    WHERE c.venue_id = $1
+    ORDER BY c.deleted_at NULLS FIRST, c.name ASC
+    `,
+    [venueId]
+  );
+
+  return rows.map(row => ({ ...toCourt(row), isArchived: row.deleted_at !== null }));
+};
+
+/**
+ * One court for its owner, archived or not. Deliberately not `findCourtById`: that one is a
+ * discovery lookup and hides archived rows, which would make restoring one impossible — the
+ * restore would 404 on the very state it exists to undo.
+ */
+export const findCourtForOwner = async (courtId: string): Promise<(Court & { isArchived: boolean }) | null> => {
+  const rows = await query<CourtRow & { deleted_at: string | null }>(
+    `SELECT ${COURT_COLUMNS}, c.deleted_at FROM courts c WHERE c.id = $1`,
+    [courtId]
+  );
+
+  const row = rows[0];
+  return row ? { ...toCourt(row), isArchived: row.deleted_at !== null } : null;
+};
+
+export type CourtWrite = {
+  name: string;
+  sport: Sport;
+  surface: CourtSurface;
+  minDurationMinutes: number;
+  maxDurationMinutes: number;
+  incrementMinutes: number;
+  bufferMinutes: number;
+};
+
+export const insertCourt = async (venueId: string, court: CourtWrite): Promise<Court> => {
+  const rows = await query<CourtRow>(
+    `
+    INSERT INTO courts (venue_id, name, sport, surface, min_duration_minutes, max_duration_minutes,
+                        increment_minutes, buffer_minutes)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING ${COURT_COLUMNS_BARE}
+    `,
+    [
+      venueId,
+      court.name,
+      court.sport,
+      court.surface,
+      court.minDurationMinutes,
+      court.maxDurationMinutes,
+      court.incrementMinutes,
+      court.bufferMinutes,
+    ]
+  );
+
+  return toCourt(rows[0]!);
+};
+
+export const updateCourt = async (courtId: string, court: CourtWrite): Promise<Court | null> => {
+  const rows = await query<CourtRow>(
+    `
+    UPDATE courts
+    SET name = $2, sport = $3, surface = $4, min_duration_minutes = $5, max_duration_minutes = $6,
+        increment_minutes = $7, buffer_minutes = $8
+    WHERE id = $1
+    RETURNING ${COURT_COLUMNS_BARE}
+    `,
+    [
+      courtId,
+      court.name,
+      court.sport,
+      court.surface,
+      court.minDurationMinutes,
+      court.maxDurationMinutes,
+      court.incrementMinutes,
+      court.bufferMinutes,
+    ]
+  );
+
+  const row = rows[0];
+  return row ? toCourt(row) : null;
+};
+
+/** Archive and restore are the same operation with a different value. There is no delete. */
+export const setCourtArchived = async (courtId: string, isArchived: boolean): Promise<boolean> => {
+  const rows = await query<{ id: string }>('UPDATE courts SET deleted_at = $2 WHERE id = $1 RETURNING id', [
+    courtId,
+    isArchived ? new Date().toISOString() : null,
+  ]);
+  return rows.length > 0;
+};
+
 type OpeningWindowRow = {
   court_id: string;
   day_of_week: number;
@@ -316,5 +430,78 @@ export const findOpeningWindowsForCourts = async (courtIds: string[]): Promise<O
     dayOfWeek: row.day_of_week,
     startsAt: row.starts_at,
     durationMinutes: row.duration_minutes,
+  }));
+};
+
+export const findOpeningWindowsForCourt = async (courtId: string): Promise<OpeningWindowSummary[]> => {
+  const rows = await query<OpeningWindowSummary & { starts_at: string }>(
+    `
+    SELECT id, day_of_week AS "dayOfWeek", starts_at::text AS starts_at, duration_minutes AS "durationMinutes"
+    FROM opening_windows
+    WHERE court_id = $1
+    ORDER BY day_of_week, starts_at
+    `,
+    [courtId]
+  );
+
+  // Postgres hands back 'HH:MM:SS'; the contract's shape is 'HH:MM', which is what a form posts.
+  return rows.map(row => ({ ...row, startsAt: row.starts_at.slice(0, 5) }));
+};
+
+/**
+ * Replace, not merge — the caller sends the whole week and gets the whole week. In one
+ * transaction, so a failed insert cannot leave a court with no hours at all, which would read
+ * to every player as permanently closed.
+ */
+export const replaceOpeningWindows = async (
+  courtId: string,
+  windows: Array<{ dayOfWeek: number; startsAt: string; durationMinutes: number }>
+): Promise<void> => {
+  await withTransaction(async client => {
+    await client.query('DELETE FROM opening_windows WHERE court_id = $1', [courtId]);
+    if (windows.length === 0) return;
+
+    // One statement with unnested arrays rather than a loop: a week is up to seven round trips
+    // otherwise, inside a transaction holding a lock the whole time.
+    await client.query(
+      `
+      INSERT INTO opening_windows (court_id, day_of_week, starts_at, duration_minutes)
+      SELECT $1, day, start_at::time, minutes
+      FROM unnest($2::int[], $3::text[], $4::int[]) AS w(day, start_at, minutes)
+      `,
+      [
+        courtId,
+        windows.map(window => window.dayOfWeek),
+        windows.map(window => window.startsAt),
+        windows.map(window => window.durationMinutes),
+      ]
+    );
+  });
+};
+
+/**
+ * Future play on a court that is already sold. Feeds the guard that refuses opening hours which
+ * would strand a booking outside them — holds count, because a hold is somebody at checkout.
+ */
+export const findFutureSoldSlots = async (courtId: string, from: Date): Promise<SoldSlot[]> => {
+  const rows = await query<{ booking_id: string; play_start: string; play_end: string }>(
+    `
+    SELECT r.booking_id, lower(r.play_during)::text AS play_start, upper(r.play_during)::text AS play_end
+    FROM reservations r
+    JOIN bookings b ON b.id = r.booking_id
+    WHERE r.court_id = $1
+      AND r.state = 'active'
+      AND r.kind IN ('booking', 'hold')
+      AND b.status IN ('pending', 'confirmed')
+      AND lower(r.play_during) >= $2
+    ORDER BY lower(r.play_during)
+    `,
+    [courtId, from.toISOString()]
+  );
+
+  return rows.map(row => ({
+    bookingId: row.booking_id,
+    start: new Date(row.play_start).getTime(),
+    end: new Date(row.play_end).getTime(),
   }));
 };

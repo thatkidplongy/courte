@@ -1,32 +1,47 @@
+import type { ReactNode } from 'react';
+
 import { notFound, redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
-import { fetchVenueMemberships } from '@/lib/api/resources';
+import { VenueSidebar } from '@/components/organisms/VenueSidebar';
+import { isNotFound } from '@/lib/api/client';
+import { fetchVenueDashboard } from '@/lib/api/resources';
+import { buildVenueNav } from '@/lib/venueNav';
 
 type LayoutProps = {
-  children: React.ReactNode;
+  children: ReactNode;
   params: Promise<{ venueId: string }>;
 };
 
 /**
- * Gate two of three (docs: role gating): every page under /manage/[venueId] renders only for
- * a member of THAT venue. Non-members get the same 404 a fabricated id would — whether the
- * venue exists is not their business. Gate one (signed in at all) is proxy.ts; gate three is
- * the API re-checking membership inside every venue-scoped operation.
- *
- * This gate is a convenience for rendering, not the security boundary. A caller who skipped
- * the UI entirely still hits gate three, which is the one that actually protects the data.
+ * The console's chrome, hoisted out of the overview page now that there is more than one screen
+ * behind the rail. The dashboard call is what proves membership: a caller with no row at this
+ * venue gets a 404 here, before any child page runs, and cannot tell a real venue from a
+ * fabricated one.
  */
 const ManageLayout = async ({ children, params }: LayoutProps) => {
   const session = await auth();
   if (!session?.user) redirect('/');
 
   const { venueId } = await params;
-  const memberships = await fetchVenueMemberships(session.user.id);
 
-  if (!memberships.some(membership => membership.venueId === venueId)) notFound();
+  const dashboard = await fetchVenueDashboard(session.user.id, venueId).catch(error => {
+    if (isNotFound(error)) notFound();
+    throw error;
+  });
 
-  return <>{children}</>;
+  const courtCount = dashboard.courts.length;
+
+  return (
+    <div className="flex min-h-screen flex-col lg:flex-row">
+      <VenueSidebar
+        venueName={dashboard.venueName}
+        venueMeta={`${courtCount} ${courtCount === 1 ? 'court' : 'courts'}`}
+        items={buildVenueNav(venueId)}
+      />
+      {children}
+    </div>
+  );
 };
 
 export default ManageLayout;
