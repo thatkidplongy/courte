@@ -9,13 +9,23 @@ import { CourtsModule } from '@/modules/courts/courts.module';
 import { InventoryModule } from '@/modules/inventory/inventory.module';
 import { HealthController } from '@/modules/health/health.controller';
 import { IdentitiesController } from '@/modules/identities/identities.controller';
+import { ReviewsModule } from '@/modules/reviews/reviews.module';
 import { SchedulerModule } from '@/modules/scheduler/scheduler.module';
 import { SeriesModule } from '@/modules/series/series.module';
 import { VenuesModule } from '@/modules/venues/venues.module';
 import { WaitlistModule } from '@/modules/waitlist/waitlist.module';
 
 @Module({
-  imports: [CourtsModule, BookingsModule, SeriesModule, WaitlistModule, VenuesModule, InventoryModule, SchedulerModule],
+  imports: [
+    CourtsModule,
+    BookingsModule,
+    SeriesModule,
+    WaitlistModule,
+    VenuesModule,
+    InventoryModule,
+    ReviewsModule,
+    SchedulerModule,
+  ],
   controllers: [HealthController, IdentitiesController, AmenitiesController],
   providers: [
     // Registered last in the chain by construction: a global filter sees errors thrown by

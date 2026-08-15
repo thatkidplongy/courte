@@ -13,6 +13,7 @@ import {
   type CourtSurface,
   type Sport,
 } from './consts';
+import type { ReviewSummary, VenueRating } from './reviews';
 import type { Amenity, VenuePhoto } from './venues';
 
 /**
@@ -97,6 +98,8 @@ export type CourtSearchItem = CourtRules & {
   venueAmenitySlugs: string[];
   /** The venue's first photo, or null — most venues have none, and the row says so by omission. */
   venuePhoto: VenuePhoto | null;
+  /** Every court at a venue shares its rating: the reviews are of the venue, not the court. */
+  venueRating: VenueRating;
   /** The venue's own point, for the results map. Every court at a venue shares it. */
   latitude: number;
   longitude: number;
@@ -148,6 +151,9 @@ export type VenueScheduleResponse = {
   venueWebsite: string | null;
   venuePhotos: VenuePhoto[];
   venueAmenities: Amenity[];
+  venueRating: VenueRating;
+  /** The newest few, for the panel on the page. The full list is paginated on its own endpoint. */
+  venueReviews: ReviewSummary[];
   /** The court that was asked for — its row opens selected. */
   courtId: number;
   dayStartIso: string;

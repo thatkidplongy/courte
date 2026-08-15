@@ -13,6 +13,7 @@ import { MAX_SLOTS_PER_DAY, SLOT_CHIPS_PER_CARD } from '@/consts';
 import { findCourtById, searchCourtsByProximity, type CourtSearchResult } from '@/db/repositories/courtRepository';
 import { findVenueTimezones } from '@/db/repositories/venueRepository';
 import { listStartTimes } from '@/domain/availability/listStartTimes';
+import { buildVenueRating } from '@/domain/reviews/buildVenueRating';
 import { NotFoundError } from '@/domain/errors';
 import { getAvailabilityForCourts } from '@/services/availabilityService';
 import { getVenueSchedule } from '@/services/venueScheduleService';
@@ -143,6 +144,10 @@ export class CourtsService {
       venueCourtCount: court.venueCourtCount,
       venueAmenitySlugs: court.venueAmenitySlugs,
       venuePhoto: court.venuePhoto,
+      venueRating: buildVenueRating({
+        ratingAverage: court.venueRatingAverage,
+        reviewCount: court.venueReviewCount,
+      }),
       latitude: court.latitude,
       longitude: court.longitude,
       distanceMetres: court.distanceMetres,

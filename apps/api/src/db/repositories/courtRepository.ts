@@ -122,6 +122,8 @@ type VenueSearchRow = CourtRow & {
   venue_amenity_slugs: string[] | null;
   photo_url: string | null;
   photo_alt: string | null;
+  review_count: number | null;
+  rating_avg: string | null;
   latitude: number;
   longitude: number;
   distance_metres: number;
@@ -136,6 +138,8 @@ export type CourtSearchResult = Court & {
   venueCourtCount: number;
   venueAmenitySlugs: string[];
   venuePhoto: VenuePhoto | null;
+  venueReviewCount: number;
+  venueRatingAverage: number | null;
   latitude: number;
   longitude: number;
   distanceMetres: number;
@@ -166,6 +170,9 @@ export type SearchCourtsParams = {
 const ORDER_BY_SORT: Record<CourtSort, string> = {
   distance: 'distance_metres ASC, venue_name ASC, name ASC',
   price: 'from_rate_cents ASC NULLS LAST, distance_metres ASC, venue_name ASC, name ASC',
+  // NULLS LAST is the whole point: an unrated venue is not a badly rated one, so it sorts after
+  // every venue that has been rated rather than below the worst of them.
+  rating: 'rating_avg DESC NULLS LAST, review_count DESC, distance_metres ASC, venue_name ASC, name ASC',
 };
 
 /**
@@ -239,6 +246,8 @@ export const searchCourtsByProximity = async (
         ST_Y(v.location::geometry) AS latitude,
         ST_X(v.location::geometry) AS longitude,
         sibling.venue_court_count,
+        rating.review_count,
+        rating.rating_avg,
         ST_Distance(v.location, origin.point) AS distance_metres,
         rate.from_rate_cents
       FROM "Court" c
@@ -249,6 +258,9 @@ export const searchCourtsByProximity = async (
         FROM "PriceRule" pr
         WHERE pr.court_id = c.id AND NOT pr.member_only
       ) rate ON true
+      -- A plain JOIN would be correct too: the view LEFT JOINs from "Venue", so there is a row
+      -- for every venue. LEFT is defensive against that changing under us.
+      LEFT JOIN "VenueRating" rating ON rating.venue_id = v.id
       LEFT JOIN LATERAL (
         SELECT COUNT(*) AS venue_court_count
         FROM "Court" sc
@@ -292,6 +304,8 @@ export const searchCourtsByProximity = async (
     venueCourtCount: Number(row.venue_court_count),
     venueAmenitySlugs: row.venue_amenity_slugs ?? [],
     venuePhoto: row.photo_url && row.photo_alt ? { url: row.photo_url, alt: row.photo_alt } : null,
+    venueReviewCount: row.review_count ?? 0,
+    venueRatingAverage: row.rating_avg == null ? null : Number(row.rating_avg),
     latitude: Number(row.latitude),
     longitude: Number(row.longitude),
     distanceMetres: Math.round(row.distance_metres),

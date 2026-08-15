@@ -40,3 +40,9 @@ export const API_VERSION_PREFIX = 'v1';
  * orchestrator's own kill timer never beats us to it.
  */
 export const SHUTDOWN_TIMEOUT_MS = 30_000;
+
+/**
+ * How many reviews the venue page carries inline. The full list is its own paginated endpoint —
+ * this is the taste of it that sits beside the booking grid without pushing it off the screen.
+ */
+export const RECENT_REVIEWS_ON_VENUE_PAGE = 5;

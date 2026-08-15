@@ -186,6 +186,27 @@ with a ₱300 standing rate and five weekday peaks of ₱450, 17:00–22:00.
 | H′13 | Restore it                                                               | Back everywhere. There is no delete button, and that is deliberate — see CONVENTIONS.md             |
 | H′14 | As `owner@point21.test`, open El Roi's courts URL                        | **404** — not 403. An outsider cannot tell a real venue from a fabricated one                       |
 
+## L — Reviews and ratings
+
+Nothing is seeded, so every row starts from an empty state — which is itself the first thing to
+check.
+
+| #   | Step                                                              | Expected                                                                               |
+| --- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| L1  | Open any court page before writing a review                       | "Reviews" section says **No reviews yet**; no stars anywhere on the row or the heading |
+| L2  | `/courts?sort=rating`                                             | 200, and unrated venues sort **after** rated ones, never below the worst               |
+| L3  | On `/bookings?period=past`, a finished unreviewed booking         | Star form, **Post review** disabled until a star is picked                             |
+| L4  | Pick 4 stars, add a comment, post                                 | Row swaps to "You reviewed this booking"; the venue page shows it and the new average  |
+| L5  | Same booking again (reload first)                                 | No form — `canReview` is false once `hasReview` is true                                |
+| L6  | `POST /v1/bookings/:id/reviews` for a booking still in the future | 400 — "You can review this once the booking has finished."                             |
+| L7  | Same, for a booking belonging to somebody else                    | **404**, not 403 — ownership is enforced by the lookup, so existence stays hidden      |
+| L8  | Same, with `rating: 6`                                            | 400, `errors[0].field = rating`                                                        |
+| L9  | Push a venue past 4.8 across 10+ reviews                          | **TOP RATED** badge on the search row, the card and the venue page                     |
+| L10 | `GET /v1/venues/9999/reviews`                                     | 404 — a fabricated venue is not an empty list                                          |
+
+L7 is the one worth re-running after any change to the reviews service: a review written against
+a stranger's booking would attach a rating to a venue the author never visited.
+
 ## I — Jobs (now in the API process)
 
 There is nothing to curl. `@nestjs/schedule` runs all three inside `apps/api`: hold sweep every
@@ -230,7 +251,7 @@ caller learns nothing about whether the id was even valid.
 pnpm test && pnpm typecheck && pnpm lint && pnpm build
 ```
 
-105 unit tests in `apps/api` and 95 in `apps/web`. Two boundary lints must hold: domain code importing Nest,
+118 unit tests in `apps/api` and 98 in `apps/web`. Two boundary lints must hold: domain code importing Nest,
 Express or a driver fails, and **anything in `apps/web` importing `pg` or an ORM fails** — that
 second rule is what keeps the web app from quietly growing a second connection pool.
 
@@ -260,7 +281,7 @@ Things a tester should NOT expect to find, so their absence isn't mistaken for a
   catching that needs an onError handler and so a client component.
 - **Notifications** — waitlist offers appear in-app only; no email/SMS.
 - **Google OAuth** — pending real credentials; dev sign-in is the local path.
-- **Integration tests in CI, deploy** — not yet set up. The 105 API unit tests cover the domain
+- **Integration tests in CI, deploy** — not yet set up. The 118 API unit tests cover the domain
   core; nothing yet exercises the HTTP surface automatically, which is a bigger gap after
   ADR 0004 than before it, because the controller/service layer is new code.
 - **Rate limiting** — `BACKEND_STANDARDS.md` requires it on auth endpoints. `POST /v1/identities`

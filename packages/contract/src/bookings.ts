@@ -40,6 +40,14 @@ export type BookingSummary = {
   playStartIso: string;
   playEndIso: string;
   holdExpiresAtIso: string | null;
+  /**
+   * Whether this booking has already been reviewed, and whether it may be. Both are decided by
+   * the API rather than the page: the rules are that play must have finished and the booking
+   * must not have been cancelled, and a page that re-derived them from `playEndIso` would be a
+   * second copy drifting against the one the write endpoint actually enforces.
+   */
+  hasReview: boolean;
+  canReview: boolean;
 };
 
 export const listBookingsQuerySchema = z.object({

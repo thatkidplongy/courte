@@ -12,6 +12,7 @@ export const ERROR_CODES = {
   HOLD_EXPIRED: 'HOLD_EXPIRED',
   CANCELLATION_WINDOW_PASSED: 'CANCELLATION_WINDOW_PASSED',
   NOT_PERMITTED: 'NOT_PERMITTED',
+  ALREADY_EXISTS: 'ALREADY_EXISTS',
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -76,6 +77,16 @@ export class HoldExpiredError extends DomainError {
 export class CancellationWindowPassedError extends DomainError {
   constructor(message = 'This booking is inside its cancellation window') {
     super(ERROR_CODES.CANCELLATION_WINDOW_PASSED, message);
+  }
+}
+
+/**
+ * A write lost a race to an identical one. Distinct from ValidationError because the caller did
+ * nothing wrong — the same request a moment earlier would have succeeded.
+ */
+export class ConflictError extends DomainError {
+  constructor(message: string) {
+    super(ERROR_CODES.ALREADY_EXISTS, message);
   }
 }
 

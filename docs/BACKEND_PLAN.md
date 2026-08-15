@@ -7,14 +7,15 @@ Postgres before it can, and the order to build it in.
 It is written page by page, because that is where the requirements actually are. The schema
 section is downstream of it, not the other way round.
 
-> **Status:** steps 1 and 2 are built — migrations `20260815090000` through
-> `20260815100000`. Court surface is an enum, venues carry a profile, photos and amenities are
+> **Status:** steps 1 to 3 are built — migrations `20260815090000` through
+> `20260815110000`. Court surface is an enum, venues carry a profile, photos and amenities are
 > real tables filtered in SQL, and price rules are date-scoped, deterministic and owner-editable
-> from the venue console. Steps 3 to 8 remain.
+> from the venue console. Reviews are anchored to bookings, the venue average is a view, and
+> "top rated" is derived from thresholds rather than stored. Steps 4 to 8 remain.
 >
 > Two conventions changed after step 2, adopted from the BYB platform services and applied
 > across every migration: **tables are PascalCase singular and always quoted**, and **keys are
-> `bigint` identity rather than uuid**. The sixteen migrations were rewritten in place and the
+> `bigint` identity rather than uuid**. The migrations were rewritten in place and the
 > development database rebuilt from them; no environment is deployed, so nothing else moved.
 > See the database section of `CONVENTIONS.md`.
 >
@@ -52,7 +53,7 @@ Every item below is a design element with no table behind it. This list _is_ the
 | Screen     | Static element                                           | Missing because                                            |
 | ---------- | -------------------------------------------------------- | ---------------------------------------------------------- |
 | 1a, 1b, 1c | Venue imagery — an accent block with a sport glyph       | no media table                                             |
-| 1b, 1c     | `4.9 ★ (127)`, `TOP RATED`                               | no reviews table                                           |
+| 1b, 1c     | ~~`4.9 ★ (127)`, `TOP RATED`~~ — built in step 3         | —                                                          |
 | 1b, 1c     | Amenities: aircon, parking, showers, rentals, lights     | no amenities table                                         |
 | 1b         | `Covered` as a third surface                             | `courts.is_indoor` is a boolean                            |
 | 1a, 1b     | Location cell reads a fixed "Cebu City" label            | no places or geolocation                                   |
@@ -463,7 +464,7 @@ Ordered by how much each step stops a page from lying.
 | --- | -------------------------------------------------------------------------------- | -------------- | ------------- |
 | 1   | **Done** — venue identity: surface enum, profile, photos, amenities, soft delete | M1, M2, M3, M6 | 1a, 1b, 1c    |
 | 2   | **Done** — pricing and hours: date-scoped rules, ambiguity fix, owner CRUD       | M5a, M5c, M5d  | 1f            |
-| 3   | Reviews and ratings — table, view, `sort=rating`, top-rated badge                | M4             | 1b, 1c        |
+| 3   | **Done** — reviews and ratings: table, view, `sort=rating`, top-rated badge      | M4             | 1b, 1c        |
 | 4   | Dashboard analytics and staff — revenue series, deltas, no-show, staff admin     | —              | 1f            |
 | 5   | Location — search areas and browser geolocation                                  | M7             | 1a, 1b        |
 | 6   | Passes and member pricing                                                        | M5b            | 1c, 1f        |

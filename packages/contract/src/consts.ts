@@ -46,8 +46,26 @@ export const AMENITY_SLUG_PATTERN = /^[a-z][a-z0-9_]*$/;
 /** A ceiling on the filter, so a hand-written URL cannot ask for a thousand-way intersection. */
 export const MAX_AMENITY_FILTERS = 20;
 
-/** Marketplace orderings. Both are decided in SQL so paging stays consistent across pages. */
-export const COURT_SORTS = ['distance', 'price'] as const;
+/** Marketplace orderings. All are decided in SQL so paging stays consistent across pages. */
+export const COURT_SORTS = ['distance', 'price', 'rating'] as const;
+
+/**
+ * What earns the "TOP RATED" badge. Derived on read, never stored — a stored flag would need a
+ * job to keep it true, and would be wrong in the window before that job ran.
+ *
+ * The review-count floor is the important half. Without it a single five-star review from the
+ * owner's friend outranks a venue with two hundred reviews averaging 4.7, which is the failure
+ * mode every rating system has to answer for.
+ */
+export const TOP_RATED_MIN_AVERAGE = 4.8;
+export const TOP_RATED_MIN_REVIEWS = 10;
+
+/** Bounds of a star rating. Shared because the API validates them and the form must not offer more. */
+export const MIN_REVIEW_RATING = 1;
+export const MAX_REVIEW_RATING = 5;
+
+/** A review body is optional, but if it is there it must fit in a page. */
+export const MAX_REVIEW_BODY_LENGTH = 2000;
 
 /**
  * The bounds of the price filter, in cents. Shared rather than presentational: the slider's

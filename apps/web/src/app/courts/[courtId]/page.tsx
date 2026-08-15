@@ -2,11 +2,14 @@ import { DateTime } from 'luxon';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import type { Amenity } from '@courte/contract';
+import type { Amenity, ReviewSummary, VenueRating } from '@courte/contract';
 
 import { BackLink } from '@/components/atoms/BackLink';
 import { FieldLabel } from '@/components/atoms/FieldLabel';
 import { CalendarIcon, CourtMark, GlobeIcon, PhoneIcon, PinIcon, UsersIcon } from '@/components/atoms/Icon';
+import { StarRating } from '@/components/atoms/StarRating';
+import { TopRatedBadge } from '@/components/atoms/TopRatedBadge';
+import { ReviewList } from '@/components/molecules/ReviewList';
 import { VenueGallery } from '@/components/molecules/VenueGallery';
 import { DAY_STRIP_LENGTH, SPORT_LABELS } from '@/consts';
 import { isNotFound } from '@/lib/api/client';
@@ -66,6 +69,39 @@ const VenueAmenities = ({ amenities }: { amenities: Amenity[] }) => {
     </section>
   );
 };
+
+/**
+ * Says "No reviews yet" rather than rendering an empty list under a heading. The distinction
+ * the copy has to hold: nobody has rated this venue, which is not the same as it being rated
+ * badly, and an empty section under a "Reviews" heading reads as the second.
+ */
+const VenueReviews = ({
+  rating,
+  reviews,
+  timezone,
+}: {
+  rating: VenueRating;
+  reviews: ReviewSummary[];
+  timezone: string;
+}) => (
+  <section className="mt-8">
+    <div className="border-ink flex flex-wrap items-center gap-x-4 gap-y-2 border-b-2 pb-3">
+      <h2 className="text-xl font-extrabold tracking-tight">Reviews</h2>
+      <StarRating rating={rating} />
+      {rating.isTopRated ? <TopRatedBadge /> : null}
+    </div>
+
+    {reviews.length === 0 ? (
+      <p className="text-muted-foreground mt-4 text-[13.5px]">
+        No reviews yet. Only players who have booked and played here can leave one.
+      </p>
+    ) : (
+      <div className="mt-4">
+        <ReviewList reviews={reviews} timezone={timezone} />
+      </div>
+    )}
+  </section>
+);
 
 const DayStrip = ({ courtId, dateIso, timezone }: { courtId: number; dateIso: string; timezone: string }) => {
   const today = DateTime.now().setZone(timezone).startOf('day');
@@ -131,7 +167,11 @@ const CourtPage = async ({ params, searchParams }: PageProps) => {
       {anchorCourt ? <VenueGallery photos={schedule.venuePhotos} sport={anchorCourt.sport} /> : null}
 
       <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-10">
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-[34px]">{schedule.venueName}</h1>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-[34px]">{schedule.venueName}</h1>
+          {schedule.venueRating.isTopRated ? <TopRatedBadge /> : null}
+        </div>
+        <StarRating rating={schedule.venueRating} className="mt-3" />
         <p className="text-muted-foreground mt-3 flex items-center gap-1.5 text-[13.5px] font-medium">
           <PinIcon className="h-4 w-4" />
           {schedule.venueAddress}
@@ -181,6 +221,8 @@ const CourtPage = async ({ params, searchParams }: PageProps) => {
             seriesAction={createSeries}
           />
         </div>
+
+        <VenueReviews rating={schedule.venueRating} reviews={schedule.venueReviews} timezone={timezone} />
       </main>
     </>
   );

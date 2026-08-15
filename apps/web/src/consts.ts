@@ -57,6 +57,7 @@ export const PAYMENT_STATE_LABELS: Record<PaymentState, string> = {
 export const COURT_SORT_LABELS: Record<CourtSort, string> = {
   distance: 'Nearest first',
   price: 'Cheapest first',
+  rating: 'Best rated first',
 };
 
 /**
@@ -92,6 +93,7 @@ export const COURT_FILTER_FIELDS = {
 export const COURT_SORT_SHORT_LABELS: Record<CourtSort, string> = {
   distance: 'Nearest',
   price: 'Price',
+  rating: 'Rating',
 };
 
 /** Three across on a desktop grid, four rows deep. */

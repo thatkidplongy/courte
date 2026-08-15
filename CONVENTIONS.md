@@ -51,9 +51,11 @@ own:
 
 ### What the mockups draw that we do not build
 
-Star ratings, review counts and "top rated" have **no data behind them** — there is no reviews
-table yet. They are left out rather than mocked, because a fabricated 4.9 next to a real
-venue's name is a lie with that venue's name attached. Same reasoning for the venue nav: the
+Star ratings, review counts and "top rated" are real now. What has not changed is the reason
+they were left out before: **no venue is seeded with reviews**, because a fabricated 4.9 next to
+a real business's name is a lie with that business's name attached. Ratings appear when players
+write them, and every screen renders the unrated case rather than an empty row of stars. Same
+reasoning for the venue nav: the
 rail carries Overview and Courts & pricing, and will carry the mockup's other five sections
 when they have routes. A nav item that navigates nowhere makes the whole rail untrustworthy,
 so the list in `lib/venueNav.ts` grows as the routes do.
@@ -178,6 +180,47 @@ than an error:
 Deleting a **price rule** is a real delete, and the only one in the inventory. A rule is a
 statement about the future; bookings already sold carry their own snapshot and never read the
 table again, so removing one cannot rewrite anything that has happened.
+
+## Reviews
+
+A review is anchored to a booking, never to a venue. `booking_id UNIQUE` is the whole integrity
+story: a review must point at a booking, so only somebody who booked can write one, and they can
+write exactly one. The write endpoint is `POST /v1/bookings/:bookingId/reviews` for that reason
+— a route under the venue would accept a rating from somebody who never played there.
+
+Three rules the service adds on top, all of them in `domain/reviews/canReviewBooking.ts` so the
+page and the endpoint cannot disagree:
+
+- **Play must have finished** — the end of the booking, not the start. Rating a game at minute
+  one is rating something that has not happened.
+- **A cancelled booking cannot be reviewed**, because it was never played. A **no-show can** —
+  the player did not turn up, but the venue may still have handled it well or badly.
+- **One review per booking**, arbitrated by the constraint rather than a prior SELECT. Two
+  submits of the same form race, and check-then-insert loses that race exactly as it does for
+  bookings.
+
+Every booking summary reports `canReview` and `hasReview` from that same function, so the form
+only appears where it would succeed.
+
+**The average is a view, not a column.** `"VenueRating"` computes it, matching
+`"BookingPaymentState"` — an aggregate that is derived cannot drift out of agreement with its
+rows, and there is no write path that can forget to update it.
+
+Two things follow from that, and both are load-bearing:
+
+- **An unrated venue has `average: null`, not `0`.** Zero is a rating, and the worst one. Every
+  consumer must handle the null, which is what forces "No reviews yet" to be written rather than
+  a row of empty stars rendered. `StarRating` returns nothing at all in that case.
+- **`sort=rating` puts unrated venues last** (`NULLS LAST`), not below the worst-rated one.
+
+**"Top rated" is derived, never stored** — `TOP_RATED_MIN_AVERAGE` across at least
+`TOP_RATED_MIN_REVIEWS`, both in the contract. A stored flag needs a job to keep it true and is
+wrong in the window right after a review lands, which is exactly when it matters. The
+review-count floor is the half that does the work: on average alone, one five-star review from
+the owner's friend outranks a venue with two hundred reviews averaging 4.7.
+
+A review author is shown by first name, or the local part of their email when they have no name
+— never the full address. The venue page is public.
 
 ## Flex and grid minimums
 

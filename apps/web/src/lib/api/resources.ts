@@ -9,6 +9,7 @@ import type {
   CourtSearchItem,
   CourtSort,
   CourtSurface,
+  CreateReviewBody,
   CreateSeriesBody,
   CreateSeriesResponse,
   JoinWaitlistBody,
@@ -23,6 +24,7 @@ import type {
   RecordWalkInBody,
   RecordWalkInResponse,
   ReplaceOpeningWindowsBody,
+  ReviewSummary,
   Sport,
   UpsertCourtBody,
   UpsertIdentityResponse,
@@ -116,6 +118,17 @@ export const joinWaitlist = (userId: number, body: JoinWaitlistBody): Promise<{ 
 
 export const fetchWaitlistEntries = (userId: number): Promise<WaitlistEntry[]> =>
   apiFetch<WaitlistEntry[]>('/waitlist-entries', { userId, revalidate: 0 });
+
+/** Public: what players said about a venue, newest first. */
+export const fetchVenueReviews = (venueId: number, page = 1): Promise<Paginated<ReviewSummary>> =>
+  apiFetch<Paginated<ReviewSummary>>(`/venues/${venueId}/reviews?page=${page}`, { revalidate: 0 });
+
+/**
+ * Anchored to the booking, not the venue: the API resolves which venue is being rated from the
+ * booking the caller owns, so there is no way to review somewhere you never played.
+ */
+export const createReview = (userId: number, bookingId: number, body: CreateReviewBody): Promise<ReviewSummary> =>
+  apiFetch<ReviewSummary>(`/bookings/${bookingId}/reviews`, { method: 'POST', body, userId });
 
 export const fetchVenueMemberships = (userId: number): Promise<VenueMembershipSummary[]> =>
   apiFetch<VenueMembershipSummary[]>('/venues/memberships', { userId, revalidate: 0 });

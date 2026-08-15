@@ -20,6 +20,7 @@ export const buildCourtSearchItem = (overrides: Partial<CourtSearchItem> = {}): 
   venueCourtCount: 3,
   venueAmenitySlugs: ['aircon', 'parking'],
   venuePhoto: null,
+  venueRating: { average: null, count: 0, isTopRated: false },
   latitude: 10.3253,
   longitude: 123.9214,
   distanceMetres: 1402,

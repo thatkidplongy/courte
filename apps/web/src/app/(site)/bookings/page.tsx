@@ -23,8 +23,10 @@ import { BOOKING_PERIODS, filterBookingsByPeriod, findNextBooking, isBookingPeri
 import type { BookingPeriod } from '@/lib/bookings';
 import { formatDay, formatPesos, formatTime } from '@/lib/format';
 import { cancelBooking } from '@/server-actions/cancelBooking';
+import { writeReview } from '@/server-actions/writeReview';
 
 import { CancelForm } from './components/CancelForm';
+import { ReviewForm } from './components/ReviewForm';
 
 /** The court page reads its day in venue-local time, so a link must carry it that way. */
 const toDateParam = (moment: Date, timezone: string): string =>
@@ -54,30 +56,47 @@ const BookingRow = ({ booking }: { booking: BookingSummary }) => {
   const playEnd = new Date(booking.playEndIso);
 
   return (
-    <li className="border-border flex flex-wrap items-center gap-4 rounded-md border p-4 sm:gap-5 sm:p-5">
-      <DateBlock booking={booking} />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <p className="font-bold">{booking.venueName}</p>
-          <StatusBadge tone={BOOKING_STATUS_TONES[booking.status]}>{BOOKING_STATUS_LABELS[booking.status]}</StatusBadge>
+    <li className="border-border rounded-md border p-4 sm:p-5">
+      <div className="flex flex-wrap items-center gap-4 sm:gap-5">
+        <DateBlock booking={booking} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <p className="font-bold">{booking.venueName}</p>
+            <StatusBadge tone={BOOKING_STATUS_TONES[booking.status]}>
+              {BOOKING_STATUS_LABELS[booking.status]}
+            </StatusBadge>
+          </div>
+          <p className="text-muted-foreground mt-1.5 text-[13px] font-medium">
+            {booking.courtNames.join(', ')} · {formatTime(playStart, booking.venueTimezone)}–
+            {formatTime(playEnd, booking.venueTimezone)}
+          </p>
+          <div className="mt-2.5 flex items-center gap-2.5">
+            <span className="text-lg font-extrabold leading-none tracking-tight">
+              {formatPesos(booking.totalCents)}
+            </span>
+            <StatusBadge tone={PAYMENT_STATE_TONES[booking.paymentState]}>
+              {PAYMENT_STATE_LABELS[booking.paymentState]}
+            </StatusBadge>
+          </div>
         </div>
-        <p className="text-muted-foreground mt-1.5 text-[13px] font-medium">
-          {booking.courtNames.join(', ')} · {formatTime(playStart, booking.venueTimezone)}–
-          {formatTime(playEnd, booking.venueTimezone)}
-        </p>
-        <div className="mt-2.5 flex items-center gap-2.5">
-          <span className="text-lg font-extrabold leading-none tracking-tight">{formatPesos(booking.totalCents)}</span>
-          <StatusBadge tone={PAYMENT_STATE_TONES[booking.paymentState]}>
-            {PAYMENT_STATE_LABELS[booking.paymentState]}
-          </StatusBadge>
-        </div>
+        {/* Full width on a phone so the cancel drops to its own line instead of squeezing the
+            venue name into two words per row. */}
+        {isCancellable ? (
+          <div className="w-full sm:w-auto">
+            <CancelForm bookingId={booking.id} action={cancelBooking} />
+          </div>
+        ) : null}
       </div>
-      {/* Full width on a phone so the cancel drops to its own line instead of squeezing the
-          venue name into two words per row. */}
-      {isCancellable ? (
-        <div className="w-full sm:w-auto">
-          <CancelForm bookingId={booking.id} action={cancelBooking} />
-        </div>
+
+      {/* Offered only where it can succeed. `canReview` is the API's answer, not this page's:
+          play must have finished, the booking must not be cancelled, and it must not already
+          carry a review. A button that the next request refuses is worse than no button. */}
+      {booking.canReview ? (
+        <ReviewForm bookingId={booking.id} venueName={booking.venueName} action={writeReview} />
+      ) : null}
+
+      {booking.hasReview ? (
+        <p className="text-muted-foreground mt-3 text-[12.5px] font-medium">You reviewed this booking.</p>
       ) : null}
     </li>
   );

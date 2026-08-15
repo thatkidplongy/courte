@@ -6,7 +6,9 @@ import { DistanceTag } from '@/components/atoms/DistanceTag';
 import { ArrowRightIcon } from '@/components/atoms/Icon';
 import { PriceTag } from '@/components/atoms/PriceTag';
 import { SportBadge } from '@/components/atoms/SportBadge';
+import { StarRating } from '@/components/atoms/StarRating';
 import { SurfaceBadge } from '@/components/atoms/SurfaceBadge';
+import { TopRatedBadge } from '@/components/atoms/TopRatedBadge';
 import { VenueImage } from '@/components/atoms/VenueImage';
 import { SlotChipList } from '@/components/molecules/SlotChipList';
 
@@ -38,6 +40,7 @@ export const CourtCard = ({ court, dateIso }: CourtCardProps) => {
             glyphClassName="h-16 w-16"
           />
           <SurfaceBadge surface={court.surface} className="absolute right-3 top-3" />
+          {court.venueRating.isTopRated ? <TopRatedBadge className="absolute left-3 top-3" /> : null}
         </Link>
 
         <div className="p-4">
@@ -53,6 +56,8 @@ export const CourtCard = ({ court, dateIso }: CourtCardProps) => {
             </span>
             <span className="text-muted-foreground text-xs font-medium">{court.name}</span>
           </div>
+
+          <StarRating rating={court.venueRating} className="mt-2 text-[11.5px]" />
 
           <PriceTag cents={court.fromRatePerHourCents} className="mt-3" />
 

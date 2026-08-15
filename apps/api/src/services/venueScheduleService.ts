@@ -2,15 +2,17 @@ import { DateTime } from 'luxon';
 
 import type { VenueScheduleCourt, VenueScheduleResponse } from '@courte/contract';
 
-import { HOURS_PER_DAY, MINUTES_PER_HOUR, MS_PER_MINUTE } from '@/consts';
+import { HOURS_PER_DAY, MINUTES_PER_HOUR, MS_PER_MINUTE, RECENT_REVIEWS_ON_VENUE_PAGE } from '@/consts';
 import { findAmenitiesForVenue } from '@/db/repositories/amenityRepository';
 import { findCourtById, findCourtsByVenue, findOpeningWindowsForCourts } from '@/db/repositories/courtRepository';
 import { findPriceRulesForCourts } from '@/db/repositories/priceRuleRepository';
+import { findRecentReviewsForVenue, findVenueRating } from '@/db/repositories/reviewRepository';
 import { findVenuePhotos, findVenueSummary } from '@/db/repositories/venueRepository';
 import { getAvailability } from '@/domain/availability/getAvailability';
 import type { Interval } from '@/domain/availability/types';
 import { NotFoundError } from '@/domain/errors';
 import { resolveQuote, type PriceRule } from '@/domain/pricing/resolveQuote';
+import { buildVenueRating } from '@/domain/reviews/buildVenueRating';
 import { buildDaySchedule, listOpenHourStarts } from '@/domain/schedule/buildDaySchedule';
 import { getAvailabilityForCourts } from '@/services/availabilityService';
 
@@ -74,12 +76,14 @@ export const getVenueSchedule = async (courtId: number, date: string | undefined
   const courts = await findCourtsByVenue(anchorCourt.venueId);
   const courtIds = courts.map(court => court.id);
 
-  const [windows, freeAvailability, rules, photos, amenities] = await Promise.all([
+  const [windows, freeAvailability, rules, photos, amenities, rating, reviews] = await Promise.all([
     findOpeningWindowsForCourts(courtIds),
     getAvailabilityForCourts(courts, range),
     findPriceRulesForCourts(courtIds),
     findVenuePhotos(venue.id),
     findAmenitiesForVenue(venue.id),
+    findVenueRating(venue.id),
+    findRecentReviewsForVenue(venue.id, RECENT_REVIEWS_ON_VENUE_PAGE),
   ]);
 
   // Opening hours are availability with nothing booked. Deriving them through the same function
@@ -125,6 +129,8 @@ export const getVenueSchedule = async (courtId: number, date: string | undefined
     venueWebsite: venue.website,
     venuePhotos: photos,
     venueAmenities: amenities,
+    venueRating: buildVenueRating(rating),
+    venueReviews: reviews,
     courtId: anchorCourt.id,
     dayStartIso: resolvedDay.toUTC().toISO() ?? new Date(range.start).toISOString(),
     openingLabel: toOpeningLabel(

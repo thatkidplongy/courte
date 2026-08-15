@@ -9,6 +9,7 @@ import type { BookingDetail } from '@/db/repositories/bookingRepository';
 import { findCourtById } from '@/db/repositories/courtRepository';
 import { findPriceRulesForCourts } from '@/db/repositories/priceRuleRepository';
 import * as reservations from '@/db/repositories/reservationRepository';
+import { findReviewedBookingIds } from '@/db/repositories/reviewRepository';
 import { findVenueTimezones } from '@/db/repositories/venueRepository';
 import { doesSlotFit } from '@/domain/availability/getAvailability';
 import {
@@ -20,6 +21,7 @@ import { assertCancellable } from '@/domain/booking/cancellationPolicy';
 import { assertDurationAllowed } from '@/domain/booking/durationPolicy';
 import { NotFoundError, OutsideOpeningHoursError } from '@/domain/errors';
 import { resolveQuote } from '@/domain/pricing/resolveQuote';
+import { canReviewBooking } from '@/domain/reviews/canReviewBooking';
 import { offerReleasedRanges } from '@/jobs/offerReleasedRanges';
 import { getAvailabilityForCourts } from '@/services/availabilityService';
 
@@ -101,14 +103,19 @@ export class BookingsService {
   async getBookingDetail(userId: number, bookingId: number): Promise<BookingSummary> {
     const booking = await bookings.findBookingDetailForUser(bookingId, userId);
     if (!booking) throw new NotFoundError('Booking');
-    return this.toSummary(booking);
+
+    const reviewed = await findReviewedBookingIds([booking.id]);
+    return this.toSummary(booking, reviewed);
   }
 
   async listBookings(userId: number, page: number, limit: number): Promise<Paginated<BookingSummary>> {
     const { bookings: details, total } = await bookings.findBookingDetailPageForUser(userId, page, limit);
 
+    // One query for the page, never one per row.
+    const reviewed = await findReviewedBookingIds(details.map(detail => detail.id));
+
     return {
-      data: details.map(detail => this.toSummary(detail)),
+      data: details.map(detail => this.toSummary(detail, reviewed)),
       total,
       page,
       totalPages: Math.max(1, Math.ceil(total / limit)),
@@ -142,7 +149,9 @@ export class BookingsService {
     return { bookingStart: new Date(policy.first_play), windowMinutes: policy.window_minutes };
   }
 
-  private toSummary(booking: BookingDetail): BookingSummary {
+  private toSummary(booking: BookingDetail, reviewedBookingIds: Set<number>): BookingSummary {
+    const hasReview = reviewedBookingIds.has(booking.id);
+
     return {
       id: booking.id,
       seriesId: booking.seriesId,
@@ -160,6 +169,10 @@ export class BookingsService {
       playStartIso: booking.playStart.toISOString(),
       playEndIso: booking.playEnd.toISOString(),
       holdExpiresAtIso: booking.holdExpiresAt?.toISOString() ?? null,
+      hasReview,
+      // Answered here rather than left to the page, so the button the reader sees and the rule
+      // the write endpoint enforces are the same function.
+      canReview: canReviewBooking({ status: booking.status, playEnd: booking.playEnd, hasReview }, Date.now()),
     };
   }
 }

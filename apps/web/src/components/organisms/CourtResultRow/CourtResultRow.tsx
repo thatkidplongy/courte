@@ -3,6 +3,8 @@ import Link from 'next/link';
 import type { CourtSearchItem } from '@courte/contract';
 
 import { LinkButton } from '@/components/atoms/LinkButton';
+import { StarRating } from '@/components/atoms/StarRating';
+import { TopRatedBadge } from '@/components/atoms/TopRatedBadge';
 import { VenueImage } from '@/components/atoms/VenueImage';
 import { SlotChipList } from '@/components/molecules/SlotChipList';
 import { AMENITY_CHIPS_PER_ROW, COURT_SURFACE_LABELS, SPORT_LABELS } from '@/consts';
@@ -47,9 +49,9 @@ const AmenityChips = ({ slugs, labels }: { slugs: string[]; labels: Map<string, 
  * address, distance, how big the venue is, the price and the next few times — where the card
  * on the landing page only has to tempt.
  *
- * The mockups also put a star rating on this row. There is still no reviews table, and a
- * fabricated 4.9 next to a real venue name is a lie with the venue's name on it, so the row
- * carries only what the API actually knows.
+ * The star rating and TOP RATED badge the mockups draw are real now, and both are absent for a
+ * venue nobody has reviewed rather than shown empty — an unrated venue has not earned a bad
+ * rating any more than a good one.
  */
 export const CourtResultRow = ({ court, dateIso, amenityLabels, isHighlighted = false }: CourtResultRowProps) => {
   const courtHref = `/courts/${court.id}?date=${dateIso}`;
@@ -77,7 +79,12 @@ export const CourtResultRow = ({ court, dateIso, amenityLabels, isHighlighted = 
 
         <div className="flex flex-wrap gap-4 p-4 sm:flex-nowrap">
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-[17px] font-extrabold tracking-tight">{court.venueName}</h3>
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+              <h3 className="min-w-0 truncate text-[17px] font-extrabold tracking-tight">{court.venueName}</h3>
+              {court.venueRating.isTopRated ? <TopRatedBadge /> : null}
+            </div>
+
+            <StarRating rating={court.venueRating} className="mt-2" />
 
             <p className="text-muted-foreground mt-2 text-[12.5px] font-medium">
               {formatDistance(court.distanceMetres)} · {court.venueAddress}
