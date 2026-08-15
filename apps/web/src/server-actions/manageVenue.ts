@@ -6,12 +6,14 @@ import { redirect } from 'next/navigation';
 import { PAYMENT_METHODS, type PaymentMethod } from '@courte/contract';
 
 import { auth } from '@/auth';
+import { MALFORMED_ID_ERROR } from '@/consts';
 import { ApiError } from '@/lib/api/client';
 import {
   addBlackout as addBlackoutRequest,
   recordPayment as recordPaymentRequest,
   recordWalkIn as recordWalkInRequest,
 } from '@/lib/api/resources';
+import { readFormId } from '@/lib/ids';
 
 export type ManageFormState = {
   error?: string;
@@ -24,19 +26,23 @@ export type ManageFormState = {
  * what you may do at a given venue.
  */
 
-const revalidateVenue = (venueId: string): void => {
+const revalidateVenue = (venueId: number): void => {
   revalidatePath(`/manage/${venueId}`);
 };
 
 export const recordWalkIn = async (_previous: ManageFormState, formData: FormData): Promise<ManageFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const venueId = String(formData.get('venueId') ?? '');
+  const venueId = readFormId(formData, 'venueId');
+
+  if (venueId === null) return { error: MALFORMED_ID_ERROR };
+  const courtId = readFormId(formData, 'courtId');
+  if (courtId === null) return { error: MALFORMED_ID_ERROR };
 
   try {
-    await recordWalkInRequest(session.user.id, venueId, {
-      courtId: String(formData.get('courtId') ?? ''),
+    await recordWalkInRequest(session.courteUserId, venueId, {
+      courtId: courtId,
       customerName: String(formData.get('customerName') ?? ''),
       startIso: String(formData.get('startIso') ?? ''),
       durationMinutes: Number(formData.get('durationMinutes')),
@@ -53,13 +59,17 @@ export const recordWalkIn = async (_previous: ManageFormState, formData: FormDat
 
 export const addBlackout = async (_previous: ManageFormState, formData: FormData): Promise<ManageFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const venueId = String(formData.get('venueId') ?? '');
+  const venueId = readFormId(formData, 'venueId');
+
+  if (venueId === null) return { error: MALFORMED_ID_ERROR };
+  const courtId = readFormId(formData, 'courtId');
+  if (courtId === null) return { error: MALFORMED_ID_ERROR };
 
   try {
-    await addBlackoutRequest(session.user.id, venueId, {
-      courtId: String(formData.get('courtId') ?? ''),
+    await addBlackoutRequest(session.courteUserId, venueId, {
+      courtId: courtId,
       reason: String(formData.get('reason') ?? ''),
       startIso: String(formData.get('startIso') ?? ''),
       endIso: String(formData.get('endIso') ?? ''),
@@ -75,13 +85,17 @@ export const addBlackout = async (_previous: ManageFormState, formData: FormData
 
 export const recordPayment = async (_previous: ManageFormState, formData: FormData): Promise<ManageFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const venueId = String(formData.get('venueId') ?? '');
+  const venueId = readFormId(formData, 'venueId');
+
+  if (venueId === null) return { error: MALFORMED_ID_ERROR };
+  const bookingId = readFormId(formData, 'bookingId');
+  if (bookingId === null) return { error: MALFORMED_ID_ERROR };
 
   try {
-    await recordPaymentRequest(session.user.id, venueId, {
-      bookingId: String(formData.get('bookingId') ?? ''),
+    await recordPaymentRequest(session.courteUserId, venueId, {
+      bookingId: bookingId,
       amountPesos: Number(formData.get('amountPesos')),
       method: parsePaymentMethod(formData.get('method')),
     });

@@ -14,19 +14,19 @@ export const listAmenities = (): Promise<Amenity[]> =>
   query<Amenity>(
     `
     SELECT slug, label
-    FROM amenities
+    FROM "Amenity"
     WHERE deleted_at IS NULL
     ORDER BY sort_order, slug
     `
   );
 
 /** One venue's amenities, already labelled — the court page shows them rather than filters on them. */
-export const findAmenitiesForVenue = (venueId: string): Promise<Amenity[]> =>
+export const findAmenitiesForVenue = (venueId: number): Promise<Amenity[]> =>
   query<Amenity>(
     `
     SELECT a.slug, a.label
-    FROM venue_amenities va
-    JOIN amenities a ON a.slug = va.amenity_slug AND a.deleted_at IS NULL
+    FROM "VenueAmenity" va
+    JOIN "Amenity" a ON a.slug = va.amenity_slug AND a.deleted_at IS NULL
     WHERE va.venue_id = $1 AND va.deleted_at IS NULL
     ORDER BY a.sort_order, a.slug
     `,

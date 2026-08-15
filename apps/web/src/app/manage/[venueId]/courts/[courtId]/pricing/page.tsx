@@ -10,6 +10,7 @@ import { formatWeekday } from '@/consts';
 import { isNotFound } from '@/lib/api/client';
 import { fetchCourtPricing } from '@/lib/api/resources';
 import { formatPesos } from '@/lib/format';
+import { parseRouteId } from '@/lib/ids';
 import { createPriceRule, deletePriceRule, replaceOpeningWindows } from '@/server-actions/manageInventory';
 
 import { OpeningHoursForm, PriceRuleForm, RemoveRuleButton } from './components/PricingForms';
@@ -35,7 +36,7 @@ const describeDates = (rule: PriceRuleSummary): string => {
   return 'always';
 };
 
-const RuleRow = ({ rule, venueId, courtId }: { rule: PriceRuleSummary; venueId: string; courtId: string }) => (
+const RuleRow = ({ rule, venueId, courtId }: { rule: PriceRuleSummary; venueId: number; courtId: number }) => (
   <tr className="border-border border-t align-middle">
     <td className="px-5 py-3.5 text-[13px] font-bold">{formatPesos(rule.ratePerHourCents)}</td>
     <td className="px-5 py-3.5 text-[13px] font-medium">{describeWhen(rule)}</td>
@@ -51,11 +52,17 @@ const RULE_HEADINGS = ['Rate', 'When', 'Dates', 'Priority', ''] as const;
 
 const ManagePricingPage = async ({ params }: PageProps) => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const { venueId, courtId } = await params;
+  const routeParams = await params;
 
-  const pricing = await fetchCourtPricing(session.user.id, venueId, courtId).catch(error => {
+  const venueId = parseRouteId(routeParams.venueId);
+
+  const courtId = parseRouteId(routeParams.courtId);
+
+  if (venueId === null || courtId === null) notFound();
+
+  const pricing = await fetchCourtPricing(session.courteUserId, venueId, courtId).catch(error => {
     if (isNotFound(error)) notFound();
     throw error;
   });

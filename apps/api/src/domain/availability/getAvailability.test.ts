@@ -4,6 +4,14 @@ import { describe, expect, it } from 'vitest';
 import { doesSlotFit, getAvailability, mergeIntervals, projectWindows, subtractIntervals } from './getAvailability';
 import type { Interval, OpeningWindow } from './types';
 
+/**
+ * Ids are integers. Named constants rather than bare numbers so a failing
+ * assertion still says which fixture it means.
+ */
+const C1 = 1;
+const C2 = 2;
+const UNKNOWN = 3;
+
 const MANILA = 'Asia/Manila';
 
 const at = (iso: string, zone = MANILA): number => DateTime.fromISO(iso, { zone }).toMillis();
@@ -81,7 +89,7 @@ describe('subtractIntervals', () => {
 
 describe('projectWindows', () => {
   it('projects a badminton-style 10:00-to-midnight window onto its day', () => {
-    const windows: OpeningWindow[] = [{ courtId: 'c1', dayOfWeek: 0, startsAt: '10:00', durationMinutes: 840 }];
+    const windows: OpeningWindow[] = [{ courtId: C1, dayOfWeek: 0, startsAt: '10:00', durationMinutes: 840 }];
 
     const projected = projectWindows(windows, manilaDay(MONDAY), MANILA);
 
@@ -90,7 +98,7 @@ describe('projectWindows', () => {
 
   it('carries a 24/7 single-window court across every day of the week', () => {
     // One week-long window anchored on Monday must fully cover a Thursday.
-    const windows: OpeningWindow[] = [{ courtId: 'c1', dayOfWeek: 0, startsAt: '00:00', durationMinutes: 10080 }];
+    const windows: OpeningWindow[] = [{ courtId: C1, dayOfWeek: 0, startsAt: '00:00', durationMinutes: 10080 }];
     const thursday = manilaDay('2026-08-13');
 
     expect(projectWindows(windows, thursday, MANILA)).toEqual([thursday]);
@@ -98,7 +106,7 @@ describe('projectWindows', () => {
 
   it('lets a late window spill past midnight into the next day', () => {
     // Monday 22:00 for 4 hours reaches into Tuesday 02:00.
-    const windows: OpeningWindow[] = [{ courtId: 'c1', dayOfWeek: 0, startsAt: '22:00', durationMinutes: 240 }];
+    const windows: OpeningWindow[] = [{ courtId: C1, dayOfWeek: 0, startsAt: '22:00', durationMinutes: 240 }];
 
     const projected = projectWindows(windows, manilaDay(TUESDAY), MANILA);
 
@@ -106,22 +114,22 @@ describe('projectWindows', () => {
   });
 
   it('returns nothing on a closed day', () => {
-    const windows: OpeningWindow[] = [{ courtId: 'c1', dayOfWeek: 0, startsAt: '10:00', durationMinutes: 60 }];
+    const windows: OpeningWindow[] = [{ courtId: C1, dayOfWeek: 0, startsAt: '10:00', durationMinutes: 60 }];
 
     expect(projectWindows(windows, manilaDay(TUESDAY), MANILA)).toEqual([]);
   });
 });
 
 describe('getAvailability', () => {
-  const windows: OpeningWindow[] = [{ courtId: 'c1', dayOfWeek: 0, startsAt: '10:00', durationMinutes: 840 }];
+  const windows: OpeningWindow[] = [{ courtId: C1, dayOfWeek: 0, startsAt: '10:00', durationMinutes: 840 }];
 
   it('subtracts reservations from open time', () => {
     const [result] = getAvailability({
-      courtIds: ['c1'],
+      courtIds: [C1],
       range: manilaDay(MONDAY),
       timezone: MANILA,
       windows,
-      blocked: [{ courtId: 'c1', start: at(`${MONDAY}T17:00`), end: at(`${MONDAY}T19:00`) }],
+      blocked: [{ courtId: C1, start: at(`${MONDAY}T17:00`), end: at(`${MONDAY}T19:00`) }],
     });
 
     expect(result?.free).toEqual([
@@ -132,20 +140,20 @@ describe('getAvailability', () => {
 
   it('does not bleed one court’s reservations into another', () => {
     const results = getAvailability({
-      courtIds: ['c1', 'c2'],
+      courtIds: [C1, C2],
       range: manilaDay(MONDAY),
       timezone: MANILA,
-      windows: [...windows, { courtId: 'c2', dayOfWeek: 0, startsAt: '10:00', durationMinutes: 840 }],
-      blocked: [{ courtId: 'c1', start: at(`${MONDAY}T10:00`), end: at(`${MONDAY}T24:00`) }],
+      windows: [...windows, { courtId: C2, dayOfWeek: 0, startsAt: '10:00', durationMinutes: 840 }],
+      blocked: [{ courtId: C1, start: at(`${MONDAY}T10:00`), end: at(`${MONDAY}T24:00`) }],
     });
 
-    expect(results.find(r => r.courtId === 'c1')?.free).toEqual([]);
-    expect(results.find(r => r.courtId === 'c2')?.free).toHaveLength(1);
+    expect(results.find(r => r.courtId === C1)?.free).toEqual([]);
+    expect(results.find(r => r.courtId === C2)?.free).toHaveLength(1);
   });
 
   it('returns no availability for a court with no windows', () => {
     const [result] = getAvailability({
-      courtIds: ['unknown'],
+      courtIds: [UNKNOWN],
       range: manilaDay(MONDAY),
       timezone: MANILA,
       windows,
@@ -158,7 +166,7 @@ describe('getAvailability', () => {
 
 describe('doesSlotFit', () => {
   const availability = {
-    courtId: 'c1',
+    courtId: C1,
     free: [{ start: at(`${MONDAY}T10:00`), end: at(`${MONDAY}T14:00`) }],
   };
 
@@ -176,7 +184,7 @@ describe('doesSlotFit', () => {
 
   it('rejects a slot spanning two free intervals with a gap between', () => {
     const split = {
-      courtId: 'c1',
+      courtId: C1,
       free: [
         { start: at(`${MONDAY}T10:00`), end: at(`${MONDAY}T12:00`) },
         { start: at(`${MONDAY}T13:00`), end: at(`${MONDAY}T15:00`) },

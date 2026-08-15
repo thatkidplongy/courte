@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { SlotChipList } from './SlotChipList';
 
 const props = {
-  courtId: 'court-1',
+  courtId: 1,
   dateIso: '2026-08-13',
   venueTimezone: 'Asia/Manila',
 };
@@ -22,7 +22,7 @@ describe('SlotChipList', () => {
 
     expect(screen.getByRole('link', { name: '8:00 PM' })).toHaveAttribute(
       'href',
-      '/courts/court-1?date=2026-08-13&start=2026-08-13T12%3A00%3A00.000Z'
+      '/courts/1?date=2026-08-13&start=2026-08-13T12%3A00%3A00.000Z'
     );
   });
 

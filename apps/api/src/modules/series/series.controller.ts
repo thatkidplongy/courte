@@ -18,7 +18,7 @@ export class SeriesController {
    */
   @Post()
   createSeries(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Body(validateWith(createSeriesBodySchema)) body: CreateSeriesBody
   ): Promise<CreateSeriesResponse> {
     return this.series.createSeries(userId, body);

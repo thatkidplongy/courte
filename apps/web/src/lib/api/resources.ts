@@ -82,56 +82,56 @@ export const searchCourts = (params: {
 export const fetchAmenities = (): Promise<Amenity[]> =>
   apiFetch<Amenity[]>('/amenities', { revalidate: AMENITY_CACHE_SECONDS });
 
-export const fetchCourtAvailability = (courtId: string, date?: string): Promise<CourtAvailabilityResponse> => {
+export const fetchCourtAvailability = (courtId: number, date?: string): Promise<CourtAvailabilityResponse> => {
   const query = date ? `?${new URLSearchParams({ date }).toString()}` : '';
   return apiFetch<CourtAvailabilityResponse>(`/courts/${courtId}${query}`, { revalidate: 0 });
 };
 
 /** Every court at the venue this court belongs to, for one day, as the grid the page draws. */
-export const fetchVenueSchedule = (courtId: string, date?: string): Promise<VenueScheduleResponse> => {
+export const fetchVenueSchedule = (courtId: number, date?: string): Promise<VenueScheduleResponse> => {
   const query = date ? `?${new URLSearchParams({ date }).toString()}` : '';
   return apiFetch<VenueScheduleResponse>(`/courts/${courtId}/schedule${query}`, { revalidate: 0 });
 };
 
-export const placeHold = (userId: string, body: PlaceHoldBody): Promise<PlaceHoldResponse> =>
+export const placeHold = (userId: number, body: PlaceHoldBody): Promise<PlaceHoldResponse> =>
   apiFetch<PlaceHoldResponse>('/holds', { method: 'POST', body, userId });
 
-export const fetchBooking = (userId: string, bookingId: string): Promise<BookingSummary> =>
+export const fetchBooking = (userId: number, bookingId: number): Promise<BookingSummary> =>
   apiFetch<BookingSummary>(`/bookings/${bookingId}`, { userId, revalidate: 0 });
 
-export const fetchBookings = (userId: string): Promise<Paginated<BookingSummary>> =>
+export const fetchBookings = (userId: number): Promise<Paginated<BookingSummary>> =>
   apiFetch<Paginated<BookingSummary>>('/bookings', { userId, revalidate: 0 });
 
-export const confirmBooking = (userId: string, bookingId: string): Promise<void> =>
+export const confirmBooking = (userId: number, bookingId: number): Promise<void> =>
   apiFetch<void>(`/bookings/${bookingId}/confirm`, { method: 'POST', userId });
 
-export const cancelBooking = (userId: string, bookingId: string): Promise<void> =>
+export const cancelBooking = (userId: number, bookingId: number): Promise<void> =>
   apiFetch<void>(`/bookings/${bookingId}/cancel`, { method: 'POST', userId });
 
-export const createSeries = (userId: string, body: CreateSeriesBody): Promise<CreateSeriesResponse> =>
+export const createSeries = (userId: number, body: CreateSeriesBody): Promise<CreateSeriesResponse> =>
   apiFetch<CreateSeriesResponse>('/series', { method: 'POST', body, userId });
 
-export const joinWaitlist = (userId: string, body: JoinWaitlistBody): Promise<{ entryId: string }> =>
-  apiFetch<{ entryId: string }>('/waitlist-entries', { method: 'POST', body, userId });
+export const joinWaitlist = (userId: number, body: JoinWaitlistBody): Promise<{ entryId: number }> =>
+  apiFetch<{ entryId: number }>('/waitlist-entries', { method: 'POST', body, userId });
 
-export const fetchWaitlistEntries = (userId: string): Promise<WaitlistEntry[]> =>
+export const fetchWaitlistEntries = (userId: number): Promise<WaitlistEntry[]> =>
   apiFetch<WaitlistEntry[]>('/waitlist-entries', { userId, revalidate: 0 });
 
-export const fetchVenueMemberships = (userId: string): Promise<VenueMembershipSummary[]> =>
+export const fetchVenueMemberships = (userId: number): Promise<VenueMembershipSummary[]> =>
   apiFetch<VenueMembershipSummary[]>('/venues/memberships', { userId, revalidate: 0 });
 
-export const fetchVenueDashboard = (userId: string, venueId: string): Promise<VenueDashboardResponse> =>
+export const fetchVenueDashboard = (userId: number, venueId: number): Promise<VenueDashboardResponse> =>
   apiFetch<VenueDashboardResponse>(`/venues/${venueId}/dashboard`, { userId, revalidate: 0 });
 
-export const recordWalkIn = (userId: string, venueId: string, body: RecordWalkInBody): Promise<RecordWalkInResponse> =>
+export const recordWalkIn = (userId: number, venueId: number, body: RecordWalkInBody): Promise<RecordWalkInResponse> =>
   apiFetch<RecordWalkInResponse>(`/venues/${venueId}/walk-ins`, { method: 'POST', body, userId });
 
-export const addBlackout = (userId: string, venueId: string, body: AddBlackoutBody): Promise<void> =>
+export const addBlackout = (userId: number, venueId: number, body: AddBlackoutBody): Promise<void> =>
   apiFetch<void>(`/venues/${venueId}/blackouts`, { method: 'POST', body, userId });
 
 export const recordPayment = (
-  userId: string,
-  venueId: string,
+  userId: number,
+  venueId: number,
   body: RecordPaymentBody
 ): Promise<RecordPaymentResponse> =>
   apiFetch<RecordPaymentResponse>(`/venues/${venueId}/payments`, { method: 'POST', body, userId });
@@ -140,39 +140,39 @@ export const recordPayment = (
  * Owner-side inventory. Every path is nested under the venue, because that is what the API
  * authorises against — there is no way in by court id alone.
  */
-export const fetchOwnedCourts = (userId: string, venueId: string): Promise<OwnedCourt[]> =>
+export const fetchOwnedCourts = (userId: number, venueId: number): Promise<OwnedCourt[]> =>
   apiFetch<OwnedCourt[]>(`/venues/${venueId}/courts`, { userId, revalidate: 0 });
 
-export const createCourt = (userId: string, venueId: string, body: UpsertCourtBody): Promise<{ courtId: string }> =>
-  apiFetch<{ courtId: string }>(`/venues/${venueId}/courts`, { method: 'POST', body, userId });
+export const createCourt = (userId: number, venueId: number, body: UpsertCourtBody): Promise<{ courtId: number }> =>
+  apiFetch<{ courtId: number }>(`/venues/${venueId}/courts`, { method: 'POST', body, userId });
 
-export const updateCourt = (userId: string, venueId: string, courtId: string, body: UpsertCourtBody): Promise<void> =>
+export const updateCourt = (userId: number, venueId: number, courtId: number, body: UpsertCourtBody): Promise<void> =>
   apiFetch<void>(`/venues/${venueId}/courts/${courtId}`, { method: 'PUT', body, userId });
 
-export const archiveCourt = (userId: string, venueId: string, courtId: string): Promise<void> =>
+export const archiveCourt = (userId: number, venueId: number, courtId: number): Promise<void> =>
   apiFetch<void>(`/venues/${venueId}/courts/${courtId}`, { method: 'DELETE', userId });
 
-export const restoreCourt = (userId: string, venueId: string, courtId: string): Promise<void> =>
+export const restoreCourt = (userId: number, venueId: number, courtId: number): Promise<void> =>
   apiFetch<void>(`/venues/${venueId}/courts/${courtId}/restore`, { method: 'POST', userId });
 
-export const fetchCourtPricing = (userId: string, venueId: string, courtId: string): Promise<CourtPricingResponse> =>
+export const fetchCourtPricing = (userId: number, venueId: number, courtId: number): Promise<CourtPricingResponse> =>
   apiFetch<CourtPricingResponse>(`/venues/${venueId}/courts/${courtId}/pricing`, { userId, revalidate: 0 });
 
 export const createPriceRule = (
-  userId: string,
-  venueId: string,
-  courtId: string,
+  userId: number,
+  venueId: number,
+  courtId: number,
   body: UpsertPriceRuleBody
 ): Promise<PriceRuleSummary> =>
   apiFetch<PriceRuleSummary>(`/venues/${venueId}/courts/${courtId}/price-rules`, { method: 'POST', body, userId });
 
-export const deletePriceRule = (userId: string, venueId: string, courtId: string, ruleId: string): Promise<void> =>
+export const deletePriceRule = (userId: number, venueId: number, courtId: number, ruleId: number): Promise<void> =>
   apiFetch<void>(`/venues/${venueId}/courts/${courtId}/price-rules/${ruleId}`, { method: 'DELETE', userId });
 
 export const replaceOpeningWindows = (
-  userId: string,
-  venueId: string,
-  courtId: string,
+  userId: number,
+  venueId: number,
+  courtId: number,
   body: ReplaceOpeningWindowsBody
 ): Promise<OpeningWindowSummary[]> =>
   apiFetch<OpeningWindowSummary[]>(`/venues/${venueId}/courts/${courtId}/opening-windows`, {

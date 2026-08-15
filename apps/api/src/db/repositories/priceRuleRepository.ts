@@ -2,8 +2,8 @@ import { query } from '@/db/client';
 import type { PriceRule } from '@/domain/pricing/resolveQuote';
 
 type PriceRuleRow = {
-  id: string;
-  court_id: string;
+  id: number;
+  court_id: number;
   priority: number;
   day_of_week: number | null;
   starts_at: string | null;
@@ -44,14 +44,14 @@ const toPriceRule = (row: PriceRuleRow): PriceRule => ({
   ratePerHourCents: row.rate_per_hour_cents,
 });
 
-export const findPriceRulesForCourts = async (courtIds: string[]): Promise<PriceRule[]> => {
+export const findPriceRulesForCourts = async (courtIds: number[]): Promise<PriceRule[]> => {
   if (courtIds.length === 0) return [];
 
   const rows = await query<PriceRuleRow>(
     `
     SELECT ${PRICE_RULE_COLUMNS}
-    FROM price_rules
-    WHERE court_id = ANY($1::uuid[])
+    FROM "PriceRule"
+    WHERE court_id = ANY($1::bigint[])
     ${PRICE_RULE_ORDER}
     `,
     [courtIds]
@@ -61,22 +61,22 @@ export const findPriceRulesForCourts = async (courtIds: string[]): Promise<Price
 };
 
 /** One court's rules, for the owner's pricing screen and for the conflict check on save. */
-export const findPriceRulesForCourt = async (courtId: string): Promise<PriceRule[]> => {
+export const findPriceRulesForCourt = async (courtId: number): Promise<PriceRule[]> => {
   const rows = await query<PriceRuleRow>(
-    `SELECT ${PRICE_RULE_COLUMNS} FROM price_rules WHERE court_id = $1 ${PRICE_RULE_ORDER}`,
+    `SELECT ${PRICE_RULE_COLUMNS} FROM "PriceRule" WHERE court_id = $1 ${PRICE_RULE_ORDER}`,
     [courtId]
   );
   return rows.map(toPriceRule);
 };
 
-export const findPriceRuleById = async (ruleId: string): Promise<PriceRule | null> => {
-  const rows = await query<PriceRuleRow>(`SELECT ${PRICE_RULE_COLUMNS} FROM price_rules WHERE id = $1`, [ruleId]);
+export const findPriceRuleById = async (ruleId: number): Promise<PriceRule | null> => {
+  const rows = await query<PriceRuleRow>(`SELECT ${PRICE_RULE_COLUMNS} FROM "PriceRule" WHERE id = $1`, [ruleId]);
   const row = rows[0];
   return row ? toPriceRule(row) : null;
 };
 
 export type PriceRuleWrite = {
-  courtId: string;
+  courtId: number;
   priority: number;
   dayOfWeek: number | null;
   startsAt: string | null;
@@ -90,7 +90,7 @@ export type PriceRuleWrite = {
 export const insertPriceRule = async (rule: PriceRuleWrite): Promise<PriceRule> => {
   const rows = await query<PriceRuleRow>(
     `
-    INSERT INTO price_rules
+    INSERT INTO "PriceRule"
       (court_id, priority, day_of_week, starts_at, ends_at, valid_from, valid_to, member_only, rate_per_hour_cents)
     VALUES ($1, $2, $3, $4::time, $5::time, $6::date, $7::date, $8, $9)
     RETURNING ${PRICE_RULE_COLUMNS}
@@ -111,10 +111,10 @@ export const insertPriceRule = async (rule: PriceRuleWrite): Promise<PriceRule> 
   return toPriceRule(rows[0]!);
 };
 
-export const updatePriceRule = async (ruleId: string, rule: PriceRuleWrite): Promise<PriceRule | null> => {
+export const updatePriceRule = async (ruleId: number, rule: PriceRuleWrite): Promise<PriceRule | null> => {
   const rows = await query<PriceRuleRow>(
     `
-    UPDATE price_rules
+    UPDATE "PriceRule"
     SET priority = $2, day_of_week = $3, starts_at = $4::time, ends_at = $5::time,
         valid_from = $6::date, valid_to = $7::date, member_only = $8, rate_per_hour_cents = $9
     WHERE id = $1
@@ -142,7 +142,7 @@ export const updatePriceRule = async (ruleId: string, rule: PriceRuleWrite): Pro
  * statement about the future — bookings already sold carry their own `rate_snapshot` and never
  * consult this table again, so removing a rule cannot rewrite anything that has happened.
  */
-export const deletePriceRule = async (ruleId: string): Promise<boolean> => {
-  const rows = await query<{ id: string }>('DELETE FROM price_rules WHERE id = $1 RETURNING id', [ruleId]);
+export const deletePriceRule = async (ruleId: number): Promise<boolean> => {
+  const rows = await query<{ id: number }>('DELETE FROM "PriceRule" WHERE id = $1 RETURNING id', [ruleId]);
   return rows.length > 0;
 };

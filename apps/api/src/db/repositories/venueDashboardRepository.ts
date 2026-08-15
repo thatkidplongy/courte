@@ -6,7 +6,7 @@ import { isOverlapViolation } from '@/db/errors';
 /** Queries that exist only for the manage dashboard. All scoped by venue_id in SQL. */
 
 type VenueBookingRow = {
-  id: string;
+  id: number;
   court_name: string;
   customer: string;
   status: BookingStatus;
@@ -19,7 +19,7 @@ type VenueBookingRow = {
 };
 
 export type VenueBooking = {
-  id: string;
+  id: number;
   courtName: string;
   customer: string;
   status: BookingStatus;
@@ -31,7 +31,7 @@ export type VenueBooking = {
   playEnd: Date;
 };
 
-export const findVenueBookings = async (venueId: string, from: Date, to: Date): Promise<VenueBooking[]> => {
+export const findVenueBookings = async (venueId: number, from: Date, to: Date): Promise<VenueBooking[]> => {
   const rows = await query<VenueBookingRow>(
     `
     SELECT b.id,
@@ -40,11 +40,11 @@ export const findVenueBookings = async (venueId: string, from: Date, to: Date): 
            b.status, b.source, b.total_cents, ps.paid_cents, ps.payment_state,
            min(lower(r.play_during))::text AS play_start,
            max(upper(r.play_during))::text AS play_end
-    FROM bookings b
-    JOIN booking_payment_state ps ON ps.booking_id = b.id
-    LEFT JOIN users u ON u.id = b.user_id
-    JOIN reservations r ON r.booking_id = b.id AND r.state = 'active'
-    JOIN courts c ON c.id = r.court_id
+    FROM "Booking" b
+    JOIN "BookingPaymentState" ps ON ps.booking_id = b.id
+    LEFT JOIN "User" u ON u.id = b.user_id
+    JOIN "Reservation" r ON r.booking_id = b.id AND r.state = 'active'
+    JOIN "Court" c ON c.id = r.court_id
     WHERE b.venue_id = $1
       AND r.play_during && tstzrange($2, $3)
       AND b.status IN ('pending', 'confirmed', 'completed', 'no_show')
@@ -75,7 +75,7 @@ export type VenueStats = {
 };
 
 export const getVenueStats = async (
-  venueId: string,
+  venueId: number,
   dayStart: Date,
   dayEnd: Date,
   weekEnd: Date,
@@ -84,16 +84,16 @@ export const getVenueStats = async (
   const rows = await query<{ bookings_today: string; upcoming_week: string; collected_month: string }>(
     `
     SELECT
-      (SELECT count(DISTINCT b.id) FROM bookings b
-        JOIN reservations r ON r.booking_id = b.id AND r.state = 'active'
+      (SELECT count(DISTINCT b.id) FROM "Booking" b
+        JOIN "Reservation" r ON r.booking_id = b.id AND r.state = 'active'
         WHERE b.venue_id = $1 AND b.status IN ('pending','confirmed','completed')
           AND r.play_during && tstzrange($2, $3)) AS bookings_today,
-      (SELECT count(DISTINCT b.id) FROM bookings b
-        JOIN reservations r ON r.booking_id = b.id AND r.state = 'active'
+      (SELECT count(DISTINCT b.id) FROM "Booking" b
+        JOIN "Reservation" r ON r.booking_id = b.id AND r.state = 'active'
         WHERE b.venue_id = $1 AND b.status IN ('pending','confirmed')
           AND r.play_during && tstzrange($3, $4)) AS upcoming_week,
       (SELECT COALESCE(SUM(CASE WHEN p.kind = 'charge' THEN p.amount_cents ELSE -p.amount_cents END), 0)
-        FROM payments p JOIN bookings b ON b.id = p.booking_id
+        FROM "Payment" p JOIN "Booking" b ON b.id = p.booking_id
         WHERE b.venue_id = $1 AND p.created_at >= $5) AS collected_month
     `,
     [venueId, dayStart.toISOString(), dayEnd.toISOString(), weekEnd.toISOString(), monthStart.toISOString()]
@@ -116,7 +116,7 @@ export const getVenueStats = async (
  * never has to guess whether a gap means "closed" or "no data".
  */
 export const getVenueUtilisationByHour = async (
-  venueId: string,
+  venueId: number,
   from: Date,
   to: Date,
   timezone: string
@@ -132,8 +132,8 @@ export const getVenueUtilisationByHour = async (
       SELECT
         EXTRACT(HOUR FROM lower(r.play_during) AT TIME ZONE $4)::int AS hour,
         count(DISTINCT b.id) AS bookings
-      FROM bookings b
-      JOIN reservations r ON r.booking_id = b.id AND r.state = 'active'
+      FROM "Booking" b
+      JOIN "Reservation" r ON r.booking_id = b.id AND r.state = 'active'
       WHERE b.venue_id = $1
         AND b.status IN ('pending','confirmed','completed')
         AND r.play_during && tstzrange($2, $3)
@@ -148,10 +148,10 @@ export const getVenueUtilisationByHour = async (
 };
 
 export type WalkInInsert = {
-  venueId: string;
-  courtId: string;
+  venueId: number;
+  courtId: number;
   customerName: string;
-  recordedBy: string;
+  recordedBy: number;
   source: Extract<BookingSource, 'phone' | 'walk_in'>;
   playStart: Date;
   playEnd: Date;
@@ -160,7 +160,7 @@ export type WalkInInsert = {
   rateSnapshot: Record<string, unknown>;
 };
 
-export type WalkInOutcome = { status: 'created'; bookingId: string } | { status: 'conflict' };
+export type WalkInOutcome = { status: 'created'; bookingId: number } | { status: 'conflict' };
 
 /**
  * Desk bookings skip the hold dance — the customer is standing there. Confirmed directly;
@@ -172,9 +172,9 @@ export const insertWalkInBooking = async (params: WalkInInsert): Promise<WalkInO
 
   try {
     const createdId = await withTransaction(async client => {
-      const booking = await client.query<{ id: string }>(
+      const booking = await client.query<{ id: number }>(
         `
-        INSERT INTO bookings (venue_id, customer_name, status, source, total_cents, rate_snapshot)
+        INSERT INTO "Booking" (venue_id, customer_name, status, source, total_cents, rate_snapshot)
         VALUES ($1, $2, 'confirmed', $3, $4, $5)
         RETURNING id
         `,
@@ -186,7 +186,7 @@ export const insertWalkInBooking = async (params: WalkInInsert): Promise<WalkInO
 
       await client.query(
         `
-        INSERT INTO reservations (court_id, booking_id, kind, during, play_during)
+        INSERT INTO "Reservation" (court_id, booking_id, kind, during, play_during)
         VALUES ($1, $2, 'booking', tstzrange($3, $4), tstzrange($5, $6))
         `,
         [
@@ -210,7 +210,7 @@ export const insertWalkInBooking = async (params: WalkInInsert): Promise<WalkInO
 };
 
 export type BlackoutInsert = {
-  courtId: string;
+  courtId: number;
   reason: string;
   start: Date;
   end: Date;
@@ -220,7 +220,7 @@ export const insertBlackout = async (params: BlackoutInsert): Promise<'created' 
   try {
     await query(
       `
-      INSERT INTO reservations (court_id, kind, during, play_during, reason)
+      INSERT INTO "Reservation" (court_id, kind, during, play_during, reason)
       VALUES ($1, 'blackout', tstzrange($2, $3), tstzrange($2, $3), $4)
       `,
       [params.courtId, params.start.toISOString(), params.end.toISOString(), params.reason]
@@ -233,20 +233,20 @@ export const insertBlackout = async (params: BlackoutInsert): Promise<'created' 
 };
 
 export type PaymentInsert = {
-  bookingId: string;
-  venueId: string;
+  bookingId: number;
+  venueId: number;
   amountCents: number;
   method: string;
-  recordedBy: string;
+  recordedBy: number;
 };
 
 /** Scoped to the venue in SQL: a booking id from another venue simply updates nothing. */
 export const insertVenuePayment = async (params: PaymentInsert): Promise<boolean> => {
-  const rows = await query<{ id: string }>(
+  const rows = await query<{ id: number }>(
     `
-    INSERT INTO payments (booking_id, kind, amount_cents, method, recorded_by)
+    INSERT INTO "Payment" (booking_id, kind, amount_cents, method, recorded_by)
     SELECT b.id, 'charge', $3, $4, $5
-    FROM bookings b
+    FROM "Booking" b
     WHERE b.id = $1 AND b.venue_id = $2
     RETURNING id
     `,

@@ -14,9 +14,9 @@ export class WaitlistController {
 
   @Post()
   joinWaitlist(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Body(validateWith(joinWaitlistBodySchema)) body: JoinWaitlistBody
-  ): Promise<{ entryId: string }> {
+  ): Promise<{ entryId: number }> {
     return this.waitlist.joinWaitlist(userId, body);
   }
 
@@ -25,7 +25,7 @@ export class WaitlistController {
    * the list has a natural ceiling the pagination rule exists to guard against.
    */
   @Get()
-  listEntries(@CurrentUserId() userId: string): Promise<WaitlistEntry[]> {
+  listEntries(@CurrentUserId() userId: number): Promise<WaitlistEntry[]> {
     return this.waitlist.listEntries(userId);
   }
 }

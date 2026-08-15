@@ -5,6 +5,13 @@ import { ValidationError } from '@/domain/errors';
 import { assertNoRuleConflict, doRulesConflict, type CandidateRule } from './assertNoRuleConflict';
 import type { PriceRule } from './resolveQuote';
 
+/**
+ * Ids are integers. Named constants rather than bare numbers so a failing
+ * assertion still says which fixture it means.
+ */
+const EXISTING = 1;
+const COURT_1 = 2;
+
 const standing: CandidateRule = {
   priority: 0,
   dayOfWeek: null,
@@ -19,8 +26,8 @@ const standing: CandidateRule = {
 const rule = (overrides: Partial<CandidateRule> = {}): CandidateRule => ({ ...standing, ...overrides });
 
 const saved = (overrides: Partial<PriceRule> = {}): PriceRule => ({
-  id: 'existing',
-  courtId: 'court-1',
+  id: EXISTING,
+  courtId: COURT_1,
   ...standing,
   ...overrides,
 });

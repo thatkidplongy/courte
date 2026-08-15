@@ -18,7 +18,7 @@ export type CreateSeriesBody = z.infer<typeof createSeriesBodySchema>;
  * not return pre-formatted strings, because a second client would format them differently.
  */
 export type CreateSeriesResponse = {
-  seriesId: string;
+  seriesId: number;
   created: number;
   requested: number;
   conflictIsos: string[];

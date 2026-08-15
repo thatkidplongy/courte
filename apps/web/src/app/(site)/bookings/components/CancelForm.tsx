@@ -6,7 +6,7 @@ import { Button } from '@/components/shadcn/ui/button';
 import type { CancelFormState } from '@/server-actions/cancelBooking';
 
 type CancelFormProps = {
-  bookingId: string;
+  bookingId: number;
   action: (state: CancelFormState, formData: FormData) => Promise<CancelFormState>;
 };
 

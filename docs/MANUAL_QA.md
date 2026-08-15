@@ -75,7 +75,7 @@ search defaults to, so the mountain barangays are inside the result set.
 Photos have no upload path yet. To see the gallery, insert a row by hand and reload the court page:
 
 ```bash
-docker exec courte-postgres psql -U courte -d courte -c "INSERT INTO venue_photos (venue_id, url, alt) VALUES ('00000000-0000-0000-0000-0000000000c1', 'https://example.test/hall.jpg', 'The main hall');"
+docker exec courte-postgres psql -U courte -d courte -c "INSERT INTO \"VenuePhoto\" (venue_id, url, alt) VALUES (1, 'https://example.test/hall.jpg', 'The main hall');"
 ```
 
 ## A‴ — Archiving
@@ -144,13 +144,13 @@ that render an existing booking do not, so history survives.
 
 ## G — Roles
 
-| #   | Do                                                                                                                                                                                                              | Expect                                                                                                                                   |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| G1  | As `player@courte.test`, open `/manage/00000000-0000-0000-0000-0000000000c1`                                                                                                                                    | **404** — not 403; existence stays hidden                                                                                                |
-| G2  | As `owner@metrosports.test`, same URL                                                                                                                                                                           | Dashboard renders; "Manage venue" appears in the header                                                                                  |
-| G3  | Signed out, open `/bookings`                                                                                                                                                                                    | Bounced to sign-in with a return URL (proxy gate)                                                                                        |
-| G4  | Staff role: `INSERT INTO venue_members (venue_id, user_id, role) SELECT '00000000-0000-0000-0000-0000000000c1', id, 'staff' FROM users WHERE email = 'staff@test.dev';` after signing in once as staff@test.dev | Staff sees the dashboard and can record walk-ins/payments; owner-only actions (pricing, staff, revenue) are the untested seam — see gaps |
-| G5  | As `desk@cebucitysports.test`, open `/v1/venues/memberships` through the app                                                                                                                                    | Three venues come back — White Hills, Mambaling, Cebu City Sports Complex                                                                |
+| #   | Do                                                                                                                                                                          | Expect                                                                                                                                   |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | As `player@courte.test`, open `/manage/1`                                                                                                                                   | **404** — not 403; existence stays hidden                                                                                                |
+| G2  | As `owner@metrosports.test`, same URL                                                                                                                                       | Dashboard renders; "Manage venue" appears in the header                                                                                  |
+| G3  | Signed out, open `/bookings`                                                                                                                                                | Bounced to sign-in with a return URL (proxy gate)                                                                                        |
+| G4  | Staff role: `INSERT INTO "VenueMember" (venue_id, user_id, role) SELECT 1, id, 'staff' FROM "User" WHERE email = 'staff@test.dev';` after signing in once as staff@test.dev | Staff sees the dashboard and can record walk-ins/payments; owner-only actions (pricing, staff, revenue) are the untested seam — see gaps |
+| G5  | As `desk@cebucitysports.test`, open `/v1/venues/memberships` through the app                                                                                                | Three venues come back — White Hills, Mambaling, Cebu City Sports Complex                                                                |
 
 ## H — Venue desk
 
@@ -208,13 +208,29 @@ curl -s -X POST localhost:4000/v1/holds -d '{}' -H 'content-type: application/js
 The second must be 401 before any validation runs — no token, no work. A malformed body behind
 a valid token returns 400 with per-field messages under `errors`.
 
+### J′ — Id validation
+
+Ids are integers, so a mistyped URL is now a likely accident rather than an improbable one.
+Every row must hold on both services:
+
+| #   | Request                      | API                            | Web                        |
+| --- | ---------------------------- | ------------------------------ | -------------------------- |
+| J′1 | `/courts/1`                  | 200                            | renders the venue grid     |
+| J′2 | `/courts/abc`                | 400, `errors[0].field=courtId` | 404 page                   |
+| J′3 | `/courts/0` and `/courts/-1` | 400                            | 404 page                   |
+| J′4 | `/courts/9999`               | 404 — well-formed, no such row | 404 page                   |
+| J′5 | `/manage/abc` signed out     | —                              | redirects to sign-in first |
+
+J′5 is the ordering check: authentication runs before the id is parsed, so an unauthenticated
+caller learns nothing about whether the id was even valid.
+
 ## K — Automated gates
 
 ```bash
 pnpm test && pnpm typecheck && pnpm lint && pnpm build
 ```
 
-104 unit tests in `apps/api` and 95 in `apps/web`. Two boundary lints must hold: domain code importing Nest,
+105 unit tests in `apps/api` and 95 in `apps/web`. Two boundary lints must hold: domain code importing Nest,
 Express or a driver fails, and **anything in `apps/web` importing `pg` or an ORM fails** — that
 second rule is what keeps the web app from quietly growing a second connection pool.
 
@@ -244,7 +260,7 @@ Things a tester should NOT expect to find, so their absence isn't mistaken for a
   catching that needs an onError handler and so a client component.
 - **Notifications** — waitlist offers appear in-app only; no email/SMS.
 - **Google OAuth** — pending real credentials; dev sign-in is the local path.
-- **Integration tests in CI, deploy** — not yet set up. The 104 API unit tests cover the domain
+- **Integration tests in CI, deploy** — not yet set up. The 105 API unit tests cover the domain
   core; nothing yet exercises the HTTP surface automatically, which is a bigger gap after
   ADR 0004 than before it, because the controller/service layer is new code.
 - **Rate limiting** — `BACKEND_STANDARDS.md` requires it on auth endpoints. `POST /v1/identities`

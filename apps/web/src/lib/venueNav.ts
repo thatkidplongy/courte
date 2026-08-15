@@ -10,7 +10,7 @@ const VENUE_SECTIONS = [
   { segment: 'courts', label: 'Courts & pricing' },
 ] as const;
 
-export const buildVenueNav = (venueId: string): NavLink[] =>
+export const buildVenueNav = (venueId: number): NavLink[] =>
   VENUE_SECTIONS.map(section => ({
     href: section.segment === '' ? `/manage/${venueId}` : `/manage/${venueId}/${section.segment}`,
     label: section.label,

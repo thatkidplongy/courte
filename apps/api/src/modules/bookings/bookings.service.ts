@@ -32,7 +32,7 @@ export class BookingsService {
    * exclusion constraint arbitrates races (docs/adr/0002); the opening-hours check here is
    * about hours, which change by owner edit, not by race.
    */
-  async placeHold(userId: string, body: PlaceHoldBody): Promise<PlaceHoldResponse> {
+  async placeHold(userId: number, body: PlaceHoldBody): Promise<PlaceHoldResponse> {
     const court = await findCourtById(body.courtId);
     if (!court) throw new NotFoundError('Court');
 
@@ -75,11 +75,11 @@ export class BookingsService {
     };
   }
 
-  async confirmBooking(userId: string, bookingId: string): Promise<void> {
+  async confirmBooking(userId: number, bookingId: number): Promise<void> {
     await confirmWorkflow(workflowDeps, { bookingId, userId });
   }
 
-  async cancelBooking(userId: string, bookingId: string): Promise<void> {
+  async cancelBooking(userId: number, bookingId: number): Promise<void> {
     const policy = await this.findCancellationPolicy(bookingId, userId);
 
     await cancelWorkflow(workflowDeps, {
@@ -98,13 +98,13 @@ export class BookingsService {
     });
   }
 
-  async getBookingDetail(userId: string, bookingId: string): Promise<BookingSummary> {
+  async getBookingDetail(userId: number, bookingId: number): Promise<BookingSummary> {
     const booking = await bookings.findBookingDetailForUser(bookingId, userId);
     if (!booking) throw new NotFoundError('Booking');
     return this.toSummary(booking);
   }
 
-  async listBookings(userId: string, page: number, limit: number): Promise<Paginated<BookingSummary>> {
+  async listBookings(userId: number, page: number, limit: number): Promise<Paginated<BookingSummary>> {
     const { bookings: details, total } = await bookings.findBookingDetailPageForUser(userId, page, limit);
 
     return {
@@ -120,16 +120,16 @@ export class BookingsService {
    * finds no row here and surfaces as the same 404 a made-up id would.
    */
   private async findCancellationPolicy(
-    bookingId: string,
-    userId: string
+    bookingId: number,
+    userId: number
   ): Promise<{ bookingStart: Date; windowMinutes: number }> {
     const rows = await query<{ first_play: string; window_minutes: number }>(
       `
       SELECT min(lower(r.play_during))::text AS first_play,
              (EXTRACT(EPOCH FROM v.cancellation_window) / 60)::int AS window_minutes
-      FROM bookings b
-      JOIN venues v ON v.id = b.venue_id
-      JOIN reservations r ON r.booking_id = b.id AND r.state = 'active'
+      FROM "Booking" b
+      JOIN "Venue" v ON v.id = b.venue_id
+      JOIN "Reservation" r ON r.booking_id = b.id AND r.state = 'active'
       WHERE b.id = $1 AND b.user_id = $2
       GROUP BY v.cancellation_window
       `,

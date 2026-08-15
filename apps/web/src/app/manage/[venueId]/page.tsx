@@ -12,6 +12,7 @@ import { BOOKING_STATUS_LABELS, BOOKING_STATUS_TONES } from '@/consts';
 import { isNotFound } from '@/lib/api/client';
 import { fetchVenueDashboard } from '@/lib/api/resources';
 import { formatPesos, formatTime } from '@/lib/format';
+import { parseRouteId } from '@/lib/ids';
 import { addBlackout, recordPayment, recordWalkIn } from '@/server-actions/manageVenue';
 
 import { BlackoutForm, PaymentForm, WalkInForm } from './components/DeskForms';
@@ -28,7 +29,7 @@ const StatCard = ({ label, value, note }: { label: string; value: string; note: 
 
 type BookingRowProps = {
   booking: VenueBookingRow;
-  venueId: string;
+  venueId: number;
   timezone: string;
 };
 
@@ -74,13 +75,17 @@ type PageProps = {
 
 const ManageVenuePage = async ({ params }: PageProps) => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const { venueId } = await params;
+  const routeParams = await params;
+
+  const venueId = parseRouteId(routeParams.venueId);
+
+  if (venueId === null) notFound();
 
   // One call carrying the stats, the next 24 hours, the court list and the utilisation series.
   // Every boundary in it is venue-local, computed by the API from the venue's own timezone.
-  const dashboard = await fetchVenueDashboard(session.user.id, venueId).catch(error => {
+  const dashboard = await fetchVenueDashboard(session.courteUserId, venueId).catch(error => {
     if (isNotFound(error)) notFound();
     throw error;
   });

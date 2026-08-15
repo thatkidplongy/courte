@@ -43,6 +43,14 @@ export const CheckIcon = (props: IconProps) => (
   </Glyph>
 );
 
+/** Lucide's `ban`: the universal "not available", and the only cell state a word would waste. */
+export const UnavailableIcon = (props: IconProps) => (
+  <Glyph {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M5.6 5.6l12.8 12.8" />
+  </Glyph>
+);
+
 export const PinIcon = (props: IconProps) => (
   <Glyph {...props}>
     <path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11z" />

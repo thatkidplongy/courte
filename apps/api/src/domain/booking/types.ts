@@ -8,13 +8,13 @@ import type { BookingSource } from '@courte/contract';
  */
 
 export type CourtSummary = {
-  id: string;
-  venueId: string;
+  id: number;
+  venueId: number;
   bufferMinutes: number;
 };
 
 export type SlotRequest = {
-  courtId: string;
+  courtId: number;
   start: Date;
   end: Date;
 };
@@ -25,15 +25,15 @@ export type Quote = {
 };
 
 export type BookingRecord = {
-  id: string;
+  id: number;
   status: string;
-  userId: string;
-  venueId: string;
+  userId: number;
+  venueId: number;
 };
 
 export type ReleasedReservation = {
-  id: string;
-  courtId: string;
+  id: number;
+  courtId: number;
   duringStart: Date;
   duringEnd: Date;
 };
@@ -44,23 +44,23 @@ export type BookingRepositoryPort = {
   insertPendingBooking(
     tx: TransactionClient,
     params: {
-      userId: string;
-      venueId: string;
+      userId: number;
+      venueId: number;
       source: BookingSource;
       totalCents: number;
       rateSnapshot: Record<string, unknown>;
     }
-  ): Promise<string>;
-  findBookingForUser(bookingId: string, userId: string): Promise<BookingRecord | null>;
-  updateBookingStatus(tx: TransactionClient, bookingId: string, status: string): Promise<void>;
+  ): Promise<number>;
+  findBookingForUser(bookingId: number, userId: number): Promise<BookingRecord | null>;
+  updateBookingStatus(tx: TransactionClient, bookingId: number, status: string): Promise<void>;
 };
 
 export type ReservationRepositoryPort = {
   insertReservation(
     tx: TransactionClient,
     params: {
-      courtId: string;
-      bookingId: string;
+      courtId: number;
+      bookingId: number;
       kind: 'booking' | 'hold';
       duringStart: Date;
       duringEnd: Date;
@@ -68,9 +68,9 @@ export type ReservationRepositoryPort = {
       playEnd: Date;
       expiresAt: Date | null;
     }
-  ): Promise<string>;
-  promoteHoldsToBooking(tx: TransactionClient, bookingId: string): Promise<number>;
-  releaseReservationsForBooking(tx: TransactionClient, bookingId: string): Promise<ReleasedReservation[]>;
+  ): Promise<number>;
+  promoteHoldsToBooking(tx: TransactionClient, bookingId: number): Promise<number>;
+  releaseReservationsForBooking(tx: TransactionClient, bookingId: number): Promise<ReleasedReservation[]>;
 };
 
 export type BookingWorkflowDeps = {
@@ -81,7 +81,7 @@ export type BookingWorkflowDeps = {
 };
 
 export type PlaceHoldParams = {
-  userId: string;
+  userId: number;
   court: CourtSummary;
   slots: SlotRequest[];
   quote: Quote;
@@ -91,18 +91,18 @@ export type PlaceHoldParams = {
 };
 
 export type HoldResult = {
-  bookingId: string;
+  bookingId: number;
   expiresAt: Date;
 };
 
 export type ConfirmBookingParams = {
-  bookingId: string;
-  userId: string;
+  bookingId: number;
+  userId: number;
 };
 
 export type CancelBookingParams = {
-  bookingId: string;
-  userId: string;
+  bookingId: number;
+  userId: number;
   assertInsideCancellationWindow(booking: BookingRecord): void;
   onReleased(released: ReleasedReservation[]): Promise<void>;
 };

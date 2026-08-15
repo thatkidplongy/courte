@@ -6,9 +6,9 @@ import { query } from '@/db/client';
 import type { BlockedInterval } from '@/domain/availability/types';
 
 type ReservationRow = {
-  id: string;
-  court_id: string;
-  booking_id: string | null;
+  id: number;
+  court_id: number;
+  booking_id: number | null;
   kind: ReservationKind;
   state: ReservationState;
   during_start: string;
@@ -17,9 +17,9 @@ type ReservationRow = {
 };
 
 export type Reservation = {
-  id: string;
-  courtId: string;
-  bookingId: string | null;
+  id: number;
+  courtId: number;
+  bookingId: number | null;
   kind: ReservationKind;
   state: ReservationState;
   duringStart: Date;
@@ -44,17 +44,17 @@ const toReservation = (row: ReservationRow): Reservation => ({
  * unavailable as a booked one until the sweeper releases it.
  */
 export const findBlockedIntervals = async (
-  courtIds: string[],
+  courtIds: number[],
   rangeStart: Date,
   rangeEnd: Date
 ): Promise<BlockedInterval[]> => {
   if (courtIds.length === 0) return [];
 
-  const rows = await query<{ court_id: string; during_start: string; during_end: string }>(
+  const rows = await query<{ court_id: number; during_start: string; during_end: string }>(
     `
     SELECT court_id, lower(during)::text AS during_start, upper(during)::text AS during_end
-    FROM reservations
-    WHERE court_id = ANY($1::uuid[])
+    FROM "Reservation"
+    WHERE court_id = ANY($1::bigint[])
       AND state = 'active'
       AND during && tstzrange($2, $3)
     `,
@@ -69,8 +69,8 @@ export const findBlockedIntervals = async (
 };
 
 export type InsertReservationParams = {
-  courtId: string;
-  bookingId: string;
+  courtId: number;
+  bookingId: number;
   kind: Extract<ReservationKind, 'booking' | 'hold'>;
   duringStart: Date;
   duringEnd: Date;
@@ -85,10 +85,10 @@ export type InsertReservationParams = {
  * race surfaces (docs/adr/0002). Runs on the caller's transaction client so a multi-court
  * booking aborts as a unit.
  */
-export const insertReservation = async (client: PoolClient, params: InsertReservationParams): Promise<string> => {
-  const result = await client.query<{ id: string }>(
+export const insertReservation = async (client: PoolClient, params: InsertReservationParams): Promise<number> => {
+  const result = await client.query<{ id: number }>(
     `
-    INSERT INTO reservations (court_id, booking_id, kind, during, play_during, expires_at)
+    INSERT INTO "Reservation" (court_id, booking_id, kind, during, play_during, expires_at)
     VALUES ($1, $2, $3, tstzrange($4, $5), tstzrange($6, $7), $8)
     RETURNING id
     `,
@@ -113,10 +113,10 @@ export const insertReservation = async (client: PoolClient, params: InsertReserv
  * Flips a hold into a confirmed booking's reservation. Scoped to active, unexpired holds on
  * the given booking: an expired hold returns zero rows and the caller decides what that means.
  */
-export const promoteHoldsToBooking = async (client: PoolClient, bookingId: string): Promise<number> => {
+export const promoteHoldsToBooking = async (client: PoolClient, bookingId: number): Promise<number> => {
   const result = await client.query(
     `
-    UPDATE reservations
+    UPDATE "Reservation"
     SET kind = 'booking', expires_at = NULL
     WHERE booking_id = $1
       AND kind = 'hold'
@@ -129,10 +129,10 @@ export const promoteHoldsToBooking = async (client: PoolClient, bookingId: strin
   return result.rowCount ?? 0;
 };
 
-export const releaseReservationsForBooking = async (client: PoolClient, bookingId: string): Promise<Reservation[]> => {
+export const releaseReservationsForBooking = async (client: PoolClient, bookingId: number): Promise<Reservation[]> => {
   const result = await client.query<ReservationRow>(
     `
-    UPDATE reservations
+    UPDATE "Reservation"
     SET state = 'released'
     WHERE booking_id = $1 AND state = 'active'
     RETURNING id, court_id, booking_id, kind, state,
@@ -153,7 +153,7 @@ export const releaseReservationsForBooking = async (client: PoolClient, bookingI
 export const releaseExpiredHolds = async (): Promise<Reservation[]> => {
   const rows = await query<ReservationRow>(
     `
-    UPDATE reservations
+    UPDATE "Reservation"
     SET state = 'released'
     WHERE kind = 'hold'
       AND state = 'active'

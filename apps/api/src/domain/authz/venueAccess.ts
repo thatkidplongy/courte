@@ -20,14 +20,14 @@ import { NotFoundError, NotPermittedError } from '@/domain/errors';
 export { VENUE_ROLES, type VenueRole };
 
 export type VenueMembership = {
-  venueId: string;
-  userId: string;
+  venueId: number;
+  userId: number;
   role: VenueRole;
 };
 
 export type MembershipReader = {
-  findMembership(userId: string, venueId: string): Promise<VenueMembership | null>;
-  findMembershipsForUser(userId: string): Promise<VenueMembership[]>;
+  findMembership(userId: number, venueId: number): Promise<VenueMembership | null>;
+  findMembershipsForUser(userId: number): Promise<VenueMembership[]>;
 };
 
 /** Staff can run the desk; owners can also change what the venue sells and who works there. */
@@ -63,8 +63,8 @@ export const canPerform = (role: VenueRole, action: VenueAction): boolean => ACT
  */
 export const requireVenueAction = async (
   memberships: MembershipReader,
-  userId: string,
-  venueId: string,
+  userId: number,
+  venueId: number,
   action: VenueAction
 ): Promise<VenueMembership> => {
   const membership = await memberships.findMembership(userId, venueId);

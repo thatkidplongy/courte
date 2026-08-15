@@ -5,6 +5,7 @@ import { FieldLabel } from '@/components/atoms/FieldLabel';
 import { isNotFound } from '@/lib/api/client';
 import { fetchBooking } from '@/lib/api/resources';
 import { formatDay, formatPesos, formatTime } from '@/lib/format';
+import { parseRouteId } from '@/lib/ids';
 import { confirmBooking } from '@/server-actions/confirmBooking';
 
 import { ConfirmPanel } from './components/ConfirmPanel';
@@ -22,11 +23,15 @@ const SummaryRow = ({ label, value }: { label: string; value: string }) => (
 
 const CheckoutPage = async ({ params }: PageProps) => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const { bookingId } = await params;
+  const routeParams = await params;
 
-  const booking = await fetchBooking(session.user.id, bookingId).catch(error => {
+  const bookingId = parseRouteId(routeParams.bookingId);
+
+  if (bookingId === null) notFound();
+
+  const booking = await fetchBooking(session.courteUserId, bookingId).catch(error => {
     // Someone else's booking id returns 404 from the API, exactly as a fabricated one does.
     if (isNotFound(error)) notFound();
     throw error;

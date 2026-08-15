@@ -15,9 +15,9 @@ import type { CourtAvailability, Interval } from '@/domain/availability/types';
  * the exclusion constraint every time.
  */
 export const getAvailabilityForCourts = async (
-  courts: Array<{ id: string; venueId: string; bufferMinutes: number }>,
+  courts: Array<{ id: number; venueId: number; bufferMinutes: number }>,
   range: Interval
-): Promise<Map<string, CourtAvailability>> => {
+): Promise<Map<number, CourtAvailability>> => {
   const courtIds = courts.map(court => court.id);
   const [windows, rawBlocked, timezones] = await Promise.all([
     findOpeningWindowsForCourts(courtIds),
@@ -31,10 +31,10 @@ export const getAvailabilityForCourts = async (
     return { ...interval, start: interval.start - bufferMs, end: interval.end + bufferMs };
   });
 
-  const result = new Map<string, CourtAvailability>();
+  const result = new Map<number, CourtAvailability>();
 
   // Availability derives per venue timezone; group courts so each venue expands in its zone.
-  const courtsByVenue = new Map<string, string[]>();
+  const courtsByVenue = new Map<number, number[]>();
   for (const court of courts) {
     const list = courtsByVenue.get(court.venueId) ?? [];
     list.push(court.id);

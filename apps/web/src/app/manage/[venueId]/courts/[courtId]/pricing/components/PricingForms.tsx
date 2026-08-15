@@ -41,8 +41,8 @@ export const PriceRuleForm = ({
   courtId,
   action,
 }: {
-  venueId: string;
-  courtId: string;
+  venueId: number;
+  courtId: number;
   action: InventoryAction;
 }) => {
   const [state, formAction, isPending] = useActionState(action, {});
@@ -98,9 +98,9 @@ export const RemoveRuleButton = ({
   ruleId,
   action,
 }: {
-  venueId: string;
-  courtId: string;
-  ruleId: string;
+  venueId: number;
+  courtId: number;
+  ruleId: number;
   action: InventoryAction;
 }) => {
   const [state, formAction, isPending] = useActionState(action, {});
@@ -130,8 +130,8 @@ export const OpeningHoursForm = ({
   windows,
   action,
 }: {
-  venueId: string;
-  courtId: string;
+  venueId: number;
+  courtId: number;
   windows: OpeningWindowSummary[];
   action: InventoryAction;
 }) => {

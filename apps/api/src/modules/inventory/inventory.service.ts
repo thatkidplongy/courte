@@ -59,7 +59,7 @@ const toSummary = (rule: PriceRule): PriceRuleSummary => ({
  */
 @Injectable()
 export class InventoryService {
-  async listCourts(userId: string, venueId: string): Promise<OwnedCourt[]> {
+  async listCourts(userId: number, venueId: number): Promise<OwnedCourt[]> {
     await requireVenueAction(membershipReader, userId, venueId, 'manageCourts');
 
     const courts = await findCourtsForOwner(venueId);
@@ -76,14 +76,14 @@ export class InventoryService {
     }));
   }
 
-  async createCourt(userId: string, venueId: string, body: UpsertCourtBody): Promise<{ courtId: string }> {
+  async createCourt(userId: number, venueId: number, body: UpsertCourtBody): Promise<{ courtId: number }> {
     await requireVenueAction(membershipReader, userId, venueId, 'manageCourts');
 
     const court = await insertCourt(venueId, body);
     return { courtId: court.id };
   }
 
-  async updateCourt(userId: string, venueId: string, courtId: string, body: UpsertCourtBody): Promise<void> {
+  async updateCourt(userId: number, venueId: number, courtId: number, body: UpsertCourtBody): Promise<void> {
     await requireVenueAction(membershipReader, userId, venueId, 'manageCourts');
     await this.requireCourtAtVenue(courtId, venueId);
 
@@ -96,7 +96,7 @@ export class InventoryService {
    * reservations of bookings people have already paid for and leave the bookings pointing at
    * nothing. Restoring is the same call with `isArchived: false`.
    */
-  async setCourtArchived(userId: string, venueId: string, courtId: string, isArchived: boolean): Promise<void> {
+  async setCourtArchived(userId: number, venueId: number, courtId: number, isArchived: boolean): Promise<void> {
     await requireVenueAction(membershipReader, userId, venueId, 'manageCourts');
     await this.requireCourtAtVenue(courtId, venueId);
 
@@ -104,7 +104,7 @@ export class InventoryService {
     if (!changed) throw new NotFoundError('Court');
   }
 
-  async getPricing(userId: string, venueId: string, courtId: string): Promise<CourtPricingResponse> {
+  async getPricing(userId: number, venueId: number, courtId: number): Promise<CourtPricingResponse> {
     await requireVenueAction(membershipReader, userId, venueId, 'managePricing');
 
     const court = await this.requireCourtAtVenue(courtId, venueId);
@@ -126,9 +126,9 @@ export class InventoryService {
   }
 
   async createPriceRule(
-    userId: string,
-    venueId: string,
-    courtId: string,
+    userId: number,
+    venueId: number,
+    courtId: number,
     body: UpsertPriceRuleBody
   ): Promise<PriceRuleSummary> {
     await requireVenueAction(membershipReader, userId, venueId, 'managePricing');
@@ -141,10 +141,10 @@ export class InventoryService {
   }
 
   async updatePriceRule(
-    userId: string,
-    venueId: string,
-    courtId: string,
-    ruleId: string,
+    userId: number,
+    venueId: number,
+    courtId: number,
+    ruleId: number,
     body: UpsertPriceRuleBody
   ): Promise<PriceRuleSummary> {
     await requireVenueAction(membershipReader, userId, venueId, 'managePricing');
@@ -164,7 +164,7 @@ export class InventoryService {
     return toSummary(updated);
   }
 
-  async deletePriceRule(userId: string, venueId: string, courtId: string, ruleId: string): Promise<void> {
+  async deletePriceRule(userId: number, venueId: number, courtId: number, ruleId: number): Promise<void> {
     await requireVenueAction(membershipReader, userId, venueId, 'managePricing');
     await this.requireCourtAtVenue(courtId, venueId);
     await this.requireRuleOnCourt(ruleId, courtId);
@@ -174,9 +174,9 @@ export class InventoryService {
   }
 
   async replaceOpeningWindows(
-    userId: string,
-    venueId: string,
-    courtId: string,
+    userId: number,
+    venueId: number,
+    courtId: number,
     body: ReplaceOpeningWindowsBody
   ): Promise<OpeningWindowSummary[]> {
     await requireVenueAction(membershipReader, userId, venueId, 'manageHours');
@@ -205,13 +205,13 @@ export class InventoryService {
    * Uses the owner lookup, which sees archived courts — the discovery one would make restoring
    * a court impossible, since it hides exactly the state the restore is undoing.
    */
-  private async requireCourtAtVenue(courtId: string, venueId: string) {
+  private async requireCourtAtVenue(courtId: number, venueId: number) {
     const court = await findCourtForOwner(courtId);
     if (!court || court.venueId !== venueId) throw new NotFoundError('Court');
     return court;
   }
 
-  private async requireRuleOnCourt(ruleId: string, courtId: string): Promise<void> {
+  private async requireRuleOnCourt(ruleId: number, courtId: number): Promise<void> {
     const rule = await findPriceRuleById(ruleId);
     if (!rule || rule.courtId !== courtId) throw new NotFoundError('Price rule');
   }

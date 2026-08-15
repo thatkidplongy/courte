@@ -27,7 +27,7 @@ const FormStatus = ({ state }: { state: ManageFormState }) => {
   return null;
 };
 
-export const CourtForm = ({ venueId, action }: { venueId: string; action: InventoryAction }) => {
+export const CourtForm = ({ venueId, action }: { venueId: number; action: InventoryAction }) => {
   const [state, formAction, isPending] = useActionState(action, {});
 
   return (
@@ -80,7 +80,7 @@ export const ArchiveToggle = ({
   court,
   action,
 }: {
-  venueId: string;
+  venueId: number;
   court: OwnedCourt;
   action: InventoryAction;
 }) => {

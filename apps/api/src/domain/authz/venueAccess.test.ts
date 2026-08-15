@@ -5,6 +5,14 @@ import { NotFoundError, NotPermittedError } from '@/domain/errors';
 import type { MembershipReader, VenueMembership } from './venueAccess';
 import { canPerform, requireVenueAction } from './venueAccess';
 
+/**
+ * Ids are integers. Named constants rather than bare numbers so a failing
+ * assertion still says which fixture it means.
+ */
+const V1 = 1;
+const U1 = 2;
+const OUTSIDER = 3;
+
 const readerWith = (membership: VenueMembership | null): MembershipReader => ({
   findMembership: vi.fn().mockResolvedValue(membership),
   findMembershipsForUser: vi.fn().mockResolvedValue(membership ? [membership] : []),
@@ -32,21 +40,21 @@ describe('canPerform', () => {
 
 describe('requireVenueAction', () => {
   it('returns the membership when the role allows the action', async () => {
-    const membership: VenueMembership = { venueId: 'v1', userId: 'u1', role: 'staff' };
+    const membership: VenueMembership = { venueId: V1, userId: U1, role: 'staff' };
 
-    await expect(requireVenueAction(readerWith(membership), 'u1', 'v1', 'recordWalkIn')).resolves.toEqual(membership);
+    await expect(requireVenueAction(readerWith(membership), U1, V1, 'recordWalkIn')).resolves.toEqual(membership);
   });
 
   it('reports not-found for a non-member, hiding whether the venue exists', async () => {
-    await expect(requireVenueAction(readerWith(null), 'outsider', 'v1', 'viewBookings')).rejects.toBeInstanceOf(
+    await expect(requireVenueAction(readerWith(null), OUTSIDER, V1, 'viewBookings')).rejects.toBeInstanceOf(
       NotFoundError
     );
   });
 
   it('reports not-permitted for a member whose role is insufficient', async () => {
-    const membership: VenueMembership = { venueId: 'v1', userId: 'u1', role: 'staff' };
+    const membership: VenueMembership = { venueId: V1, userId: U1, role: 'staff' };
 
-    await expect(requireVenueAction(readerWith(membership), 'u1', 'v1', 'viewRevenue')).rejects.toBeInstanceOf(
+    await expect(requireVenueAction(readerWith(membership), U1, V1, 'viewRevenue')).rejects.toBeInstanceOf(
       NotPermittedError
     );
   });

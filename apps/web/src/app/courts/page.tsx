@@ -74,7 +74,7 @@ const ResultList = ({
   courts: CourtSearchItem[];
   filters: CourtFilters;
   amenityLabels: Map<string, string>;
-  highlightCourtId?: string;
+  highlightCourtId?: number;
 }) => (
   <ul className="mt-5 flex flex-col gap-3.5">
     {courts.map(court => (

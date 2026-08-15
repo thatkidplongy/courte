@@ -19,7 +19,7 @@ export class WaitlistService {
    * The window's own coherence — ends after it starts, long enough for the requested minimum
    * — is enforced by the schema at the edge, so nothing is re-checked here.
    */
-  async joinWaitlist(userId: string, body: JoinWaitlistBody): Promise<{ entryId: string }> {
+  async joinWaitlist(userId: number, body: JoinWaitlistBody): Promise<{ entryId: number }> {
     const court = await findCourtById(body.courtId);
     if (!court) throw new NotFoundError('Court');
 
@@ -34,7 +34,7 @@ export class WaitlistService {
     return { entryId };
   }
 
-  async listEntries(userId: string): Promise<WaitlistEntry[]> {
+  async listEntries(userId: number): Promise<WaitlistEntry[]> {
     const entries = await findWaitlistEntriesForUser(userId);
     return entries.map(entry => this.toEntry(entry));
   }

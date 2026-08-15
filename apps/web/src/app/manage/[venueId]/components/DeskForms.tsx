@@ -13,7 +13,7 @@ import { Input } from '@/components/shadcn/ui/input';
 import type { ManageFormState } from '@/server-actions/manageVenue';
 
 type CourtOption = {
-  id: string;
+  id: number;
   name: string;
 };
 
@@ -38,8 +38,10 @@ const PAYMENT_METHOD_OPTIONS: SelectOption[] = [
   { value: 'card', label: 'Card' },
 ];
 
+// A DOM select value is a string whatever it identifies, so the id is stringified for the
+// control and parsed back out of the FormData on the server.
 const toCourtOptions = (courts: CourtOption[]): SelectOption[] =>
-  courts.map(court => ({ value: court.id, label: court.name }));
+  courts.map(court => ({ value: String(court.id), label: court.name }));
 
 const FormStatus = ({ state }: { state: ManageFormState }) => {
   if (state.error) return <Notice tone="error">{state.error}</Notice>;
@@ -61,7 +63,7 @@ const toUtcIso = (local: string): string => {
 const DateTimeInput = ({ name }: { name: string }) => <Input type="datetime-local" name={name} required />;
 
 type WalkInFormProps = {
-  venueId: string;
+  venueId: number;
   courts: CourtOption[];
   action: DeskAction;
 };
@@ -109,7 +111,7 @@ export const WalkInForm = ({ venueId, courts, action }: WalkInFormProps) => {
 };
 
 type BlackoutFormProps = {
-  venueId: string;
+  venueId: number;
   courts: CourtOption[];
   action: DeskAction;
 };
@@ -150,8 +152,8 @@ export const BlackoutForm = ({ venueId, courts, action }: BlackoutFormProps) => 
 };
 
 type PaymentFormProps = {
-  venueId: string;
-  bookingId: string;
+  venueId: number;
+  bookingId: number;
   outstandingPesos: number;
   action: DeskAction;
 };

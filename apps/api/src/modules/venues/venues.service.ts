@@ -39,13 +39,13 @@ const UTILISATION_WINDOW_DAYS = 30;
  */
 @Injectable()
 export class VenuesService {
-  listMemberships(userId: string): Promise<VenueMembershipSummary[]> {
+  listMemberships(userId: number): Promise<VenueMembershipSummary[]> {
     return findVenueMembershipSummaries(userId);
   }
 
   async getDashboard(
-    userId: string,
-    venueId: string,
+    userId: number,
+    venueId: number,
     fromIso: string | undefined,
     toIso: string | undefined
   ): Promise<VenueDashboardResponse> {
@@ -91,7 +91,7 @@ export class VenuesService {
     };
   }
 
-  async recordWalkIn(userId: string, venueId: string, body: RecordWalkInBody): Promise<RecordWalkInResponse> {
+  async recordWalkIn(userId: number, venueId: number, body: RecordWalkInBody): Promise<RecordWalkInResponse> {
     const membership = await requireVenueAction(membershipReader, userId, venueId, 'recordWalkIn');
     const court = await this.findCourtInVenue(body.courtId, venueId);
 
@@ -127,7 +127,7 @@ export class VenuesService {
     return { bookingId: outcome.bookingId, totalCents: quote.totalCents };
   }
 
-  async addBlackout(userId: string, venueId: string, body: AddBlackoutBody): Promise<void> {
+  async addBlackout(userId: number, venueId: number, body: AddBlackoutBody): Promise<void> {
     await requireVenueAction(membershipReader, userId, venueId, 'blockCourt');
     const court = await this.findCourtInVenue(body.courtId, venueId);
 
@@ -143,7 +143,7 @@ export class VenuesService {
     }
   }
 
-  async recordPayment(userId: string, venueId: string, body: RecordPaymentBody): Promise<RecordPaymentResponse> {
+  async recordPayment(userId: number, venueId: number, body: RecordPaymentBody): Promise<RecordPaymentResponse> {
     const membership = await requireVenueAction(membershipReader, userId, venueId, 'recordPayment');
 
     const amountCents = Math.round(body.amountPesos * 100);
@@ -165,7 +165,7 @@ export class VenuesService {
   }
 
   /** A court id from another venue is indistinguishable from a missing one. */
-  private async findCourtInVenue(courtId: string, venueId: string) {
+  private async findCourtInVenue(courtId: number, venueId: number) {
     const court = await findCourtById(courtId);
     if (!court || court.venueId !== venueId) throw new NotFoundError('Court');
     return court;

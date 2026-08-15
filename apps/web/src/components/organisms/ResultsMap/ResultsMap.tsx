@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { OSM_TILE_ATTRIBUTION, OSM_TILE_URL, SINGLE_PIN_ZOOM } from '@/consts';
 
 export type MapPin = {
-  venueId: string;
+  venueId: number;
   venueName: string;
   latitude: number;
   longitude: number;

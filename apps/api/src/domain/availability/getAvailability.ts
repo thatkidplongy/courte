@@ -95,7 +95,7 @@ export const projectWindows = (windows: OpeningWindow[], range: Interval, timezo
 };
 
 export type GetAvailabilityParams = {
-  courtIds: string[];
+  courtIds: number[];
   range: Interval;
   timezone: string;
   windows: OpeningWindow[];
@@ -103,14 +103,14 @@ export type GetAvailabilityParams = {
 };
 
 export const getAvailability = (params: GetAvailabilityParams): CourtAvailability[] => {
-  const windowsByCourt = new Map<string, OpeningWindow[]>();
+  const windowsByCourt = new Map<number, OpeningWindow[]>();
   for (const window of params.windows) {
     const list = windowsByCourt.get(window.courtId) ?? [];
     list.push(window);
     windowsByCourt.set(window.courtId, list);
   }
 
-  const blockedByCourt = new Map<string, Interval[]>();
+  const blockedByCourt = new Map<number, Interval[]>();
   for (const block of params.blocked) {
     const list = blockedByCourt.get(block.courtId) ?? [];
     list.push({ start: block.start, end: block.end });

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { COURT_SURFACES, SPORTS, type CourtSurface, type Sport } from '@courte/contract';
 
 import { auth } from '@/auth';
+import { MALFORMED_ID_ERROR } from '@/consts';
 import { ApiError } from '@/lib/api/client';
 import {
   archiveCourt as archiveCourtRequest,
@@ -15,6 +16,7 @@ import {
   replaceOpeningWindows as replaceOpeningWindowsRequest,
   restoreCourt as restoreCourtRequest,
 } from '@/lib/api/resources';
+import { readFormId } from '@/lib/ids';
 import type { ManageFormState } from '@/server-actions/manageVenue';
 
 /**
@@ -39,7 +41,7 @@ const optionalNumber = (value: FormDataEntryValue | null): number | null => {
 const isSport = (value: string): value is Sport => SPORTS.includes(value as Sport);
 const isSurface = (value: string): value is CourtSurface => COURT_SURFACES.includes(value as CourtSurface);
 
-const revalidateInventory = (venueId: string, courtId?: string): void => {
+const revalidateInventory = (venueId: number, courtId?: number): void => {
   revalidatePath(`/manage/${venueId}/courts`);
   // The public grid prices every hour from these rules, so it must not keep serving the old ones.
   if (courtId) {
@@ -50,9 +52,11 @@ const revalidateInventory = (venueId: string, courtId?: string): void => {
 
 export const createCourt = async (_previous: ManageFormState, formData: FormData): Promise<ManageFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const venueId = String(formData.get('venueId') ?? '');
+  const venueId = readFormId(formData, 'venueId');
+
+  if (venueId === null) return { error: MALFORMED_ID_ERROR };
   const sport = String(formData.get('sport') ?? '');
   const surface = String(formData.get('surface') ?? '');
 
@@ -60,7 +64,7 @@ export const createCourt = async (_previous: ManageFormState, formData: FormData
   if (!isSurface(surface)) return { error: 'Choose a surface' };
 
   try {
-    await createCourtRequest(session.user.id, venueId, {
+    await createCourtRequest(session.courteUserId, venueId, {
       name: String(formData.get('name') ?? ''),
       sport,
       surface,
@@ -84,16 +88,19 @@ export const createCourt = async (_previous: ManageFormState, formData: FormData
  */
 export const setCourtArchived = async (_previous: ManageFormState, formData: FormData): Promise<ManageFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const venueId = String(formData.get('venueId') ?? '');
-  const courtId = String(formData.get('courtId') ?? '');
+  const venueId = readFormId(formData, 'venueId');
+
+  if (venueId === null) return { error: MALFORMED_ID_ERROR };
+  const courtId = readFormId(formData, 'courtId');
+  if (courtId === null) return { error: MALFORMED_ID_ERROR };
   const shouldArchive = formData.get('isArchived') !== 'true';
 
   try {
     await (shouldArchive
-      ? archiveCourtRequest(session.user.id, venueId, courtId)
-      : restoreCourtRequest(session.user.id, venueId, courtId));
+      ? archiveCourtRequest(session.courteUserId, venueId, courtId)
+      : restoreCourtRequest(session.courteUserId, venueId, courtId));
   } catch (error) {
     if (error instanceof ApiError) return { error: error.toFormMessage() };
     throw error;
@@ -105,16 +112,19 @@ export const setCourtArchived = async (_previous: ManageFormState, formData: For
 
 export const createPriceRule = async (_previous: ManageFormState, formData: FormData): Promise<ManageFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const venueId = String(formData.get('venueId') ?? '');
-  const courtId = String(formData.get('courtId') ?? '');
+  const venueId = readFormId(formData, 'venueId');
+
+  if (venueId === null) return { error: MALFORMED_ID_ERROR };
+  const courtId = readFormId(formData, 'courtId');
+  if (courtId === null) return { error: MALFORMED_ID_ERROR };
   const pesos = Number(formData.get('ratePerHourPesos'));
 
   if (!Number.isFinite(pesos) || pesos < 0) return { error: 'Enter a rate' };
 
   try {
-    await createPriceRuleRequest(session.user.id, venueId, courtId, {
+    await createPriceRuleRequest(session.courteUserId, venueId, courtId, {
       priority: Number(formData.get('priority') ?? 0),
       dayOfWeek: optionalNumber(formData.get('dayOfWeek')),
       startsAt: optionalText(formData.get('startsAt')),
@@ -137,13 +147,19 @@ export const createPriceRule = async (_previous: ManageFormState, formData: Form
 
 export const deletePriceRule = async (_previous: ManageFormState, formData: FormData): Promise<ManageFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const venueId = String(formData.get('venueId') ?? '');
-  const courtId = String(formData.get('courtId') ?? '');
+  const venueId = readFormId(formData, 'venueId');
+
+  if (venueId === null) return { error: MALFORMED_ID_ERROR };
+  const courtId = readFormId(formData, 'courtId');
+  if (courtId === null) return { error: MALFORMED_ID_ERROR };
 
   try {
-    await deletePriceRuleRequest(session.user.id, venueId, courtId, String(formData.get('ruleId') ?? ''));
+    const ruleId = readFormId(formData, 'ruleId');
+    if (ruleId === null) return { error: MALFORMED_ID_ERROR };
+
+    await deletePriceRuleRequest(session.courteUserId, venueId, courtId, ruleId);
   } catch (error) {
     if (error instanceof ApiError) return { error: error.toFormMessage() };
     throw error;
@@ -162,10 +178,13 @@ export const replaceOpeningWindows = async (
   formData: FormData
 ): Promise<ManageFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const venueId = String(formData.get('venueId') ?? '');
-  const courtId = String(formData.get('courtId') ?? '');
+  const venueId = readFormId(formData, 'venueId');
+
+  if (venueId === null) return { error: MALFORMED_ID_ERROR };
+  const courtId = readFormId(formData, 'courtId');
+  if (courtId === null) return { error: MALFORMED_ID_ERROR };
 
   const windows = [0, 1, 2, 3, 4, 5, 6].flatMap(day => {
     if (formData.get(`open-${day}`) !== 'on') return [];
@@ -178,7 +197,7 @@ export const replaceOpeningWindows = async (
   });
 
   try {
-    await replaceOpeningWindowsRequest(session.user.id, venueId, courtId, { windows });
+    await replaceOpeningWindowsRequest(session.courteUserId, venueId, courtId, { windows });
   } catch (error) {
     if (error instanceof ApiError) return { error: error.toFormMessage() };
     throw error;

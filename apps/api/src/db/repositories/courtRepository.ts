@@ -23,8 +23,8 @@ import type { SoldSlot } from '@/domain/schedule/assertWindowsCoverBookings';
  */
 
 type CourtRow = {
-  id: string;
-  venue_id: string;
+  id: number;
+  venue_id: number;
   name: string;
   sport: Sport;
   surface: CourtSurface;
@@ -35,8 +35,8 @@ type CourtRow = {
 };
 
 export type Court = {
-  id: string;
-  venueId: string;
+  id: number;
+  venueId: number;
   name: string;
   sport: Sport;
   surface: CourtSurface;
@@ -86,12 +86,12 @@ const COURT_COLUMNS = COURT_FIELDS.map(field => `c.${field}`).join(', ');
  * that join a court at a retired venue merely vanishes from search while staying bookable to
  * anyone holding its URL — this is the lookup `placeHold` and the walk-in desk go through.
  */
-export const findCourtById = async (courtId: string): Promise<Court | null> => {
+export const findCourtById = async (courtId: number): Promise<Court | null> => {
   const rows = await query<CourtRow>(
     `
     SELECT ${COURT_COLUMNS}
-    FROM courts c
-    JOIN venues v ON v.id = c.venue_id
+    FROM "Court" c
+    JOIN "Venue" v ON v.id = c.venue_id
     WHERE c.id = $1 AND c.deleted_at IS NULL AND v.deleted_at IS NULL
     `,
     [courtId]
@@ -100,12 +100,12 @@ export const findCourtById = async (courtId: string): Promise<Court | null> => {
   return row ? toCourt(row) : null;
 };
 
-export const findCourtsByVenue = async (venueId: string): Promise<Court[]> => {
+export const findCourtsByVenue = async (venueId: number): Promise<Court[]> => {
   const rows = await query<CourtRow>(
     `
     SELECT ${COURT_COLUMNS}
-    FROM courts c
-    JOIN venues v ON v.id = c.venue_id
+    FROM "Court" c
+    JOIN "Venue" v ON v.id = c.venue_id
     WHERE c.venue_id = $1 AND c.deleted_at IS NULL AND v.deleted_at IS NULL
     ORDER BY c.name ASC
     `,
@@ -199,7 +199,7 @@ export const searchCourtsByProximity = async (
     // and showers must narrow to venues with both, where a plain `= ANY` would widen to either.
     values.push(params.amenitySlugs);
     filters.push(`AND (
-          SELECT count(*) FROM venue_amenities va
+          SELECT count(*) FROM "VenueAmenity" va
           WHERE va.venue_id = v.id AND va.deleted_at IS NULL AND va.amenity_slug = ANY($${values.length}::text[])
         ) = cardinality($${values.length}::text[])`);
   }
@@ -241,30 +241,30 @@ export const searchCourtsByProximity = async (
         sibling.venue_court_count,
         ST_Distance(v.location, origin.point) AS distance_metres,
         rate.from_rate_cents
-      FROM courts c
-      JOIN venues v ON v.id = c.venue_id
+      FROM "Court" c
+      JOIN "Venue" v ON v.id = c.venue_id
       CROSS JOIN origin
       LEFT JOIN LATERAL (
         SELECT MIN(pr.rate_per_hour_cents) AS from_rate_cents
-        FROM price_rules pr
+        FROM "PriceRule" pr
         WHERE pr.court_id = c.id AND NOT pr.member_only
       ) rate ON true
       LEFT JOIN LATERAL (
         SELECT COUNT(*) AS venue_court_count
-        FROM courts sc
+        FROM "Court" sc
         WHERE sc.venue_id = v.id AND sc.deleted_at IS NULL
       ) sibling ON true
       LEFT JOIN LATERAL (
         SELECT COALESCE(array_agg(va.amenity_slug ORDER BY a.sort_order, a.slug), '{}') AS venue_amenity_slugs
-        FROM venue_amenities va
-        JOIN amenities a ON a.slug = va.amenity_slug AND a.deleted_at IS NULL
+        FROM "VenueAmenity" va
+        JOIN "Amenity" a ON a.slug = va.amenity_slug AND a.deleted_at IS NULL
         WHERE va.venue_id = v.id AND va.deleted_at IS NULL
       ) amen ON true
       -- A photo of this court wins over a photo of the venue: the boolean sorts false (0)
       -- for the court's own rows, so they come first without a second query.
       LEFT JOIN LATERAL (
         SELECT vp.url, vp.alt
-        FROM venue_photos vp
+        FROM "VenuePhoto" vp
         WHERE vp.venue_id = v.id
           AND (vp.court_id = c.id OR vp.court_id IS NULL)
           AND vp.deleted_at IS NULL
@@ -305,11 +305,11 @@ export const searchCourtsByProximity = async (
  * The owner's view: archived courts included, flagged rather than hidden. Retiring a court is
  * reversible, and a screen that simply stops showing it gives the owner no way to undo.
  */
-export const findCourtsForOwner = async (venueId: string): Promise<Array<Court & { isArchived: boolean }>> => {
+export const findCourtsForOwner = async (venueId: number): Promise<Array<Court & { isArchived: boolean }>> => {
   const rows = await query<CourtRow & { deleted_at: string | null }>(
     `
     SELECT ${COURT_COLUMNS}, c.deleted_at
-    FROM courts c
+    FROM "Court" c
     WHERE c.venue_id = $1
     ORDER BY c.deleted_at NULLS FIRST, c.name ASC
     `,
@@ -324,9 +324,9 @@ export const findCourtsForOwner = async (venueId: string): Promise<Array<Court &
  * discovery lookup and hides archived rows, which would make restoring one impossible — the
  * restore would 404 on the very state it exists to undo.
  */
-export const findCourtForOwner = async (courtId: string): Promise<(Court & { isArchived: boolean }) | null> => {
+export const findCourtForOwner = async (courtId: number): Promise<(Court & { isArchived: boolean }) | null> => {
   const rows = await query<CourtRow & { deleted_at: string | null }>(
-    `SELECT ${COURT_COLUMNS}, c.deleted_at FROM courts c WHERE c.id = $1`,
+    `SELECT ${COURT_COLUMNS}, c.deleted_at FROM "Court" c WHERE c.id = $1`,
     [courtId]
   );
 
@@ -344,10 +344,10 @@ export type CourtWrite = {
   bufferMinutes: number;
 };
 
-export const insertCourt = async (venueId: string, court: CourtWrite): Promise<Court> => {
+export const insertCourt = async (venueId: number, court: CourtWrite): Promise<Court> => {
   const rows = await query<CourtRow>(
     `
-    INSERT INTO courts (venue_id, name, sport, surface, min_duration_minutes, max_duration_minutes,
+    INSERT INTO "Court" (venue_id, name, sport, surface, min_duration_minutes, max_duration_minutes,
                         increment_minutes, buffer_minutes)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING ${COURT_COLUMNS_BARE}
@@ -367,10 +367,10 @@ export const insertCourt = async (venueId: string, court: CourtWrite): Promise<C
   return toCourt(rows[0]!);
 };
 
-export const updateCourt = async (courtId: string, court: CourtWrite): Promise<Court | null> => {
+export const updateCourt = async (courtId: number, court: CourtWrite): Promise<Court | null> => {
   const rows = await query<CourtRow>(
     `
-    UPDATE courts
+    UPDATE "Court"
     SET name = $2, sport = $3, surface = $4, min_duration_minutes = $5, max_duration_minutes = $6,
         increment_minutes = $7, buffer_minutes = $8
     WHERE id = $1
@@ -393,8 +393,8 @@ export const updateCourt = async (courtId: string, court: CourtWrite): Promise<C
 };
 
 /** Archive and restore are the same operation with a different value. There is no delete. */
-export const setCourtArchived = async (courtId: string, isArchived: boolean): Promise<boolean> => {
-  const rows = await query<{ id: string }>('UPDATE courts SET deleted_at = $2 WHERE id = $1 RETURNING id', [
+export const setCourtArchived = async (courtId: number, isArchived: boolean): Promise<boolean> => {
+  const rows = await query<{ id: number }>('UPDATE "Court" SET deleted_at = $2 WHERE id = $1 RETURNING id', [
     courtId,
     isArchived ? new Date().toISOString() : null,
   ]);
@@ -402,7 +402,7 @@ export const setCourtArchived = async (courtId: string, isArchived: boolean): Pr
 };
 
 type OpeningWindowRow = {
-  court_id: string;
+  court_id: number;
   day_of_week: number;
   starts_at: string;
   duration_minutes: number;
@@ -412,14 +412,14 @@ type OpeningWindowRow = {
  * Bulk-loaded for every court in a search at once. Fetching these per court is the N+1 that
  * makes the results page slow, and it is the reason this takes an array.
  */
-export const findOpeningWindowsForCourts = async (courtIds: string[]): Promise<OpeningWindow[]> => {
+export const findOpeningWindowsForCourts = async (courtIds: number[]): Promise<OpeningWindow[]> => {
   if (courtIds.length === 0) return [];
 
   const rows = await query<OpeningWindowRow>(
     `
     SELECT court_id, day_of_week, starts_at::text AS starts_at, duration_minutes
-    FROM opening_windows
-    WHERE court_id = ANY($1::uuid[])
+    FROM "OpeningWindow"
+    WHERE court_id = ANY($1::bigint[])
     ORDER BY court_id, day_of_week, starts_at
     `,
     [courtIds]
@@ -433,11 +433,11 @@ export const findOpeningWindowsForCourts = async (courtIds: string[]): Promise<O
   }));
 };
 
-export const findOpeningWindowsForCourt = async (courtId: string): Promise<OpeningWindowSummary[]> => {
+export const findOpeningWindowsForCourt = async (courtId: number): Promise<OpeningWindowSummary[]> => {
   const rows = await query<OpeningWindowSummary & { starts_at: string }>(
     `
     SELECT id, day_of_week AS "dayOfWeek", starts_at::text AS starts_at, duration_minutes AS "durationMinutes"
-    FROM opening_windows
+    FROM "OpeningWindow"
     WHERE court_id = $1
     ORDER BY day_of_week, starts_at
     `,
@@ -454,18 +454,18 @@ export const findOpeningWindowsForCourt = async (courtId: string): Promise<Openi
  * to every player as permanently closed.
  */
 export const replaceOpeningWindows = async (
-  courtId: string,
+  courtId: number,
   windows: Array<{ dayOfWeek: number; startsAt: string; durationMinutes: number }>
 ): Promise<void> => {
   await withTransaction(async client => {
-    await client.query('DELETE FROM opening_windows WHERE court_id = $1', [courtId]);
+    await client.query('DELETE FROM "OpeningWindow" WHERE court_id = $1', [courtId]);
     if (windows.length === 0) return;
 
     // One statement with unnested arrays rather than a loop: a week is up to seven round trips
     // otherwise, inside a transaction holding a lock the whole time.
     await client.query(
       `
-      INSERT INTO opening_windows (court_id, day_of_week, starts_at, duration_minutes)
+      INSERT INTO "OpeningWindow" (court_id, day_of_week, starts_at, duration_minutes)
       SELECT $1, day, start_at::time, minutes
       FROM unnest($2::int[], $3::text[], $4::int[]) AS w(day, start_at, minutes)
       `,
@@ -483,12 +483,12 @@ export const replaceOpeningWindows = async (
  * Future play on a court that is already sold. Feeds the guard that refuses opening hours which
  * would strand a booking outside them — holds count, because a hold is somebody at checkout.
  */
-export const findFutureSoldSlots = async (courtId: string, from: Date): Promise<SoldSlot[]> => {
-  const rows = await query<{ booking_id: string; play_start: string; play_end: string }>(
+export const findFutureSoldSlots = async (courtId: number, from: Date): Promise<SoldSlot[]> => {
+  const rows = await query<{ booking_id: number; play_start: string; play_end: string }>(
     `
     SELECT r.booking_id, lower(r.play_during)::text AS play_start, upper(r.play_during)::text AS play_end
-    FROM reservations r
-    JOIN bookings b ON b.id = r.booking_id
+    FROM "Reservation" r
+    JOIN "Booking" b ON b.id = r.booking_id
     WHERE r.court_id = $1
       AND r.state = 'active'
       AND r.kind IN ('booking', 'hold')

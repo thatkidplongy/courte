@@ -10,10 +10,10 @@ export type UpsertUserParams = {
  * splits an identity); the returned id is OUR uuid, which is what goes into the session and
  * every FK — Google's subject id never leaks into the schema.
  */
-export const upsertUserFromOAuth = async (params: UpsertUserParams): Promise<string> => {
-  const rows = await query<{ id: string }>(
+export const upsertUserFromOAuth = async (params: UpsertUserParams): Promise<number> => {
+  const rows = await query<{ id: number }>(
     `
-    INSERT INTO users (email, name)
+    INSERT INTO "User" (email, name)
     VALUES ($1, $2)
     ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
     RETURNING id

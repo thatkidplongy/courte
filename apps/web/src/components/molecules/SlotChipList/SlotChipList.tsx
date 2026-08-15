@@ -4,7 +4,7 @@ import { formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 type SlotChipListProps = {
-  courtId: string;
+  courtId: number;
   dateIso: string;
   startIsos: string[];
   venueTimezone: string;

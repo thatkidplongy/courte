@@ -9,7 +9,7 @@ const HOUR = 60 * 60_000;
 
 const buildBooking = (overrides: Partial<BookingSummary> = {}): BookingSummary =>
   ({
-    id: 'b1',
+    id: 1,
     venueName: 'El Roi Badminton',
     venueTimezone: 'Asia/Manila',
     courtNames: ['Court A'],
@@ -55,18 +55,18 @@ describe('filterBookingsByPeriod', () => {
 
 describe('findNextBooking', () => {
   it('returns the soonest booking still ahead, not merely the first in the list', () => {
-    const later = buildBooking({ id: 'later', playStartIso: new Date(NOW + 5 * HOUR).toISOString() });
+    const later = buildBooking({ id: 2, playStartIso: new Date(NOW + 5 * HOUR).toISOString() });
     const sooner = buildBooking({
-      id: 'sooner',
+      id: 3,
       playStartIso: new Date(NOW + HOUR).toISOString(),
       playEndIso: new Date(NOW + 2 * HOUR).toISOString(),
     });
 
-    expect(findNextBooking([later, sooner], NOW)?.id).toBe('sooner');
+    expect(findNextBooking([later, sooner], NOW)?.id).toBe(3);
   });
 
   it('ignores a cancelled booking however near it is', () => {
-    const cancelled = buildBooking({ id: 'cancelled', status: 'cancelled' });
+    const cancelled = buildBooking({ id: 4, status: 'cancelled' });
 
     expect(findNextBooking([cancelled], NOW)).toBeNull();
   });

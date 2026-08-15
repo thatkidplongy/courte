@@ -4,8 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { MALFORMED_ID_ERROR } from '@/consts';
 import { ApiError } from '@/lib/api/client';
 import { joinWaitlist as joinWaitlistRequest } from '@/lib/api/resources';
+import { readFormId } from '@/lib/ids';
 
 export type JoinWaitlistFormState = {
   error?: string;
@@ -22,11 +24,14 @@ export const joinWaitlist = async (
   formData: FormData
 ): Promise<JoinWaitlistFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
+
+  const courtId = readFormId(formData, 'courtId');
+  if (courtId === null) return { error: MALFORMED_ID_ERROR };
 
   try {
-    await joinWaitlistRequest(session.user.id, {
-      courtId: String(formData.get('courtId') ?? ''),
+    await joinWaitlistRequest(session.courteUserId, {
+      courtId: courtId,
       desiredStartIso: String(formData.get('desiredStartIso') ?? ''),
       desiredEndIso: String(formData.get('desiredEndIso') ?? ''),
       minDurationMinutes: Number(formData.get('minDurationMinutes')),

@@ -9,11 +9,11 @@ import type { CourtSearchItem } from '@courte/contract';
  * (the results map) is exercised against plausible numbers rather than zeroes.
  */
 export const buildCourtSearchItem = (overrides: Partial<CourtSearchItem> = {}): CourtSearchItem => ({
-  id: 'court-1',
+  id: 1,
   name: 'Court A',
   sport: 'badminton',
   surface: 'indoor',
-  venueId: 'venue-1',
+  venueId: 1,
   venueName: 'El Roi Badminton',
   venueAddress: 'A. S. Fortuna Street, Mandaue',
   venueTimezone: 'Asia/Manila',

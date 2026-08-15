@@ -3,15 +3,29 @@ import { describe, expect, it } from 'vitest';
 import type { ReleasedRange, WaitlistCandidate } from './matchOffers';
 import { matchOffers } from './matchOffers';
 
+/**
+ * Ids are integers. Named constants rather than bare numbers so a failing
+ * assertion still says which fixture it means.
+ */
+const C1 = 1;
+const V1 = 2;
+const W1 = 3;
+const NEWER = 4;
+const OLDER = 5;
+const WRONG_COURT = 6;
+const C9 = 7;
+const RIGHT_COURT = 8;
+const C2 = 9;
+
 const HOUR = 3_600_000;
 const T0 = Date.parse('2026-08-10T09:00:00Z');
 
-const released: ReleasedRange[] = [{ courtId: 'c1', venueId: 'v1', interval: { start: T0, end: T0 + 2 * HOUR } }];
+const released: ReleasedRange[] = [{ courtId: C1, venueId: V1, interval: { start: T0, end: T0 + 2 * HOUR } }];
 
 const candidate = (overrides: Partial<WaitlistCandidate>): WaitlistCandidate => ({
-  id: 'w1',
+  id: W1,
   courtId: null,
-  venueId: 'v1',
+  venueId: V1,
   desired: { start: T0, end: T0 + 2 * HOUR },
   minDurationMinutes: 60,
   createdAt: new Date('2026-08-01T00:00:00Z'),
@@ -21,12 +35,12 @@ const candidate = (overrides: Partial<WaitlistCandidate>): WaitlistCandidate => 
 describe('matchOffers', () => {
   it('offers a released range to the oldest matching entry only', () => {
     const offers = matchOffers(released, [
-      candidate({ id: 'newer', createdAt: new Date('2026-08-05T00:00:00Z') }),
-      candidate({ id: 'older', createdAt: new Date('2026-08-01T00:00:00Z') }),
+      candidate({ id: NEWER, createdAt: new Date('2026-08-05T00:00:00Z') }),
+      candidate({ id: OLDER, createdAt: new Date('2026-08-01T00:00:00Z') }),
     ]);
 
     expect(offers).toHaveLength(1);
-    expect(offers[0]?.entryId).toBe('older');
+    expect(offers[0]?.entryId).toBe(OLDER);
   });
 
   it('skips entries whose usable overlap is shorter than their minimum duration', () => {
@@ -39,25 +53,25 @@ describe('matchOffers', () => {
 
   it('matches court-specific entries only on that court', () => {
     const offers = matchOffers(released, [
-      candidate({ id: 'wrong-court', courtId: 'c9' }),
-      candidate({ id: 'right-court', courtId: 'c1', createdAt: new Date('2026-08-06T00:00:00Z') }),
+      candidate({ id: WRONG_COURT, courtId: C9 }),
+      candidate({ id: RIGHT_COURT, courtId: C1, createdAt: new Date('2026-08-06T00:00:00Z') }),
     ]);
 
     expect(offers).toHaveLength(1);
-    expect(offers[0]?.entryId).toBe('right-court');
+    expect(offers[0]?.entryId).toBe(RIGHT_COURT);
   });
 
   it('matches venue-wide entries against any court at the venue', () => {
-    const offers = matchOffers(released, [candidate({ venueId: 'v1', courtId: null })]);
+    const offers = matchOffers(released, [candidate({ venueId: V1, courtId: null })]);
 
     expect(offers).toHaveLength(1);
-    expect(offers[0]?.courtId).toBe('c1');
+    expect(offers[0]?.courtId).toBe(C1);
   });
 
   it('never offers one entry twice across multiple released ranges', () => {
     const twoRanges: ReleasedRange[] = [
       ...released,
-      { courtId: 'c2', venueId: 'v1', interval: { start: T0, end: T0 + 2 * HOUR } },
+      { courtId: C2, venueId: V1, interval: { start: T0, end: T0 + 2 * HOUR } },
     ];
 
     const offers = matchOffers(twoRanges, [candidate({})]);

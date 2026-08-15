@@ -13,8 +13,8 @@ import { formatWholePesos } from './format';
  * is comparing. A venue whose courts are all unpriced still gets a pin, labelled with its
  * distance instead: it exists and it is nearby, which is what the map is for.
  */
-export const buildVenuePins = (courts: CourtSearchItem[], dateIso: string, highlightVenueId?: string): MapPin[] => {
-  const byVenue = new Map<string, { court: CourtSearchItem; cheapestCents: number | null }>();
+export const buildVenuePins = (courts: CourtSearchItem[], dateIso: string, highlightVenueId?: number): MapPin[] => {
+  const byVenue = new Map<number, { court: CourtSearchItem; cheapestCents: number | null }>();
 
   courts.forEach(court => {
     const existing = byVenue.get(court.venueId);

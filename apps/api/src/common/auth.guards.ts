@@ -34,8 +34,16 @@ export class JwtAuthGuard implements CanActivate {
 
       if (typeof payload.sub !== 'string') throw new UnauthorizedException('Token carries no subject');
 
-      request.context.userId = payload.sub;
-      request.log = request.log.child({ userId: payload.sub });
+      // `sub` is a string by RFC 7519 whatever it identifies, so the user id is parsed here
+      // rather than trusted. A token whose subject is not a positive integer cannot name a
+      // user in this schema, and is rejected as firmly as a forged signature.
+      const userId = Number(payload.sub);
+      if (!Number.isSafeInteger(userId) || userId <= 0) {
+        throw new UnauthorizedException('Token subject is not a user id');
+      }
+
+      request.context.userId = userId;
+      request.log = request.log.child({ userId });
       return true;
     } catch {
       // One generic message: which part failed is not the caller's business.

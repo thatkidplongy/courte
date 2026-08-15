@@ -19,7 +19,7 @@ export const logger = pino({
 export type RequestContext = {
   requestId: string;
   /** Populated by JwtAuthGuard. Absent on public routes; never read from a request body. */
-  userId?: string;
+  userId?: number;
 };
 
 export const createRequestLogger = (context: RequestContext) => logger.child(context);

@@ -11,23 +11,23 @@ import type { Interval } from '@/domain/availability/types';
  */
 
 export type ReleasedRange = {
-  courtId: string;
-  venueId: string;
+  courtId: number;
+  venueId: number;
   interval: Interval;
 };
 
 export type WaitlistCandidate = {
-  id: string;
-  courtId: string | null;
-  venueId: string | null;
+  id: number;
+  courtId: number | null;
+  venueId: number | null;
   desired: Interval;
   minDurationMinutes: number;
   createdAt: Date;
 };
 
 export type Offer = {
-  entryId: string;
-  courtId: string;
+  entryId: number;
+  courtId: number;
   interval: Interval;
 };
 
@@ -44,7 +44,7 @@ const matchesTarget = (candidate: WaitlistCandidate, released: ReleasedRange): b
 
 export const matchOffers = (released: ReleasedRange[], candidates: WaitlistCandidate[]): Offer[] => {
   const byOldest = [...candidates].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-  const offered = new Set<string>();
+  const offered = new Set<number>();
   const offers: Offer[] = [];
 
   for (const range of released) {

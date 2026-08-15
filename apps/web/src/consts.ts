@@ -164,3 +164,10 @@ export const API_TOKEN_TTL_SECONDS = 300;
 
 /** Give up on the API rather than holding a page render open indefinitely. */
 export const API_TIMEOUT_MS = 10_000;
+
+/**
+ * What a form says when an id field fails to parse. Every id in a form is hidden or comes from
+ * a select this app rendered, so reaching this means the page is stale or the field was
+ * tampered with — neither of which the reader can fix by editing what they can see.
+ */
+export const MALFORMED_ID_ERROR = 'That form is out of date. Reload the page and try again.';

@@ -8,7 +8,7 @@ import type { Request } from 'express';
  * Safe to assert: every route using it sits behind JwtAuthGuard, which throws before the
  * handler runs if the token is missing or invalid.
  */
-export const CurrentUserId = createParamDecorator((_data: unknown, context: ExecutionContext): string => {
+export const CurrentUserId = createParamDecorator((_data: unknown, context: ExecutionContext): number => {
   const request = context.switchToHttp().getRequest<Request>();
   const userId = request.context.userId;
   if (!userId) throw new Error('CurrentUserId used on a route that is not behind JwtAuthGuard');

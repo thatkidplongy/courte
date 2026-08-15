@@ -4,8 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { MALFORMED_ID_ERROR } from '@/consts';
 import { ApiError } from '@/lib/api/client';
 import { confirmBooking as confirmRequest } from '@/lib/api/resources';
+import { readFormId } from '@/lib/ids';
 
 export type ConfirmFormState = {
   error?: string;
@@ -13,10 +15,13 @@ export type ConfirmFormState = {
 
 export const confirmBooking = async (_previous: ConfirmFormState, formData: FormData): Promise<ConfirmFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
+
+  const bookingId = readFormId(formData, 'bookingId');
+  if (bookingId === null) return { error: MALFORMED_ID_ERROR };
 
   try {
-    await confirmRequest(session.user.id, String(formData.get('bookingId') ?? ''));
+    await confirmRequest(session.courteUserId, bookingId);
   } catch (error) {
     if (error instanceof ApiError) return { error: error.toFormMessage() };
     throw error;

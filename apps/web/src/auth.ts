@@ -11,7 +11,7 @@ import { upsertIdentity } from '@/lib/api/resources';
  *
  * Deliberately no database adapter, and after ADR 0004 no database at all. Google is an
  * identity source, not our user store: on sign-in the API resolves the verified email into
- * our own users row and returns our uuid, which is what goes in the token. The session
+ * our own "User" row and returns our id, which is what goes in the token. The session
  * carries identity only — venue memberships are read per request by the API, so revoking
  * staff access never waits for a token to expire.
  */
@@ -54,12 +54,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email,
           (account.provider === 'google' ? profile?.name : user?.name) ?? email
         );
-        token.userId = identity.userId;
+        token.courteUserId = identity.userId;
       }
       return token;
     },
     session({ session, token }) {
-      if (typeof token.userId === 'string') session.user.id = token.userId;
+      if (typeof token.courteUserId === 'number') session.courteUserId = token.courteUserId;
       return session;
     },
   },

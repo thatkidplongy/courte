@@ -18,15 +18,15 @@ export const placeHoldBodySchema = z.object({
 export type PlaceHoldBody = z.infer<typeof placeHoldBodySchema>;
 
 export type PlaceHoldResponse = {
-  bookingId: string;
+  bookingId: number;
   holdExpiresAtIso: string;
   totalCents: number;
 };
 
 export type BookingSummary = {
-  id: string;
-  seriesId: string | null;
-  venueId: string;
+  id: number;
+  seriesId: number | null;
+  venueId: number;
   status: BookingStatus;
   source: BookingSource;
   totalCents: number;

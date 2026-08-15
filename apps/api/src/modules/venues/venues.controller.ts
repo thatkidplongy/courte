@@ -31,13 +31,13 @@ export class VenuesController {
    * "memberships" would be read as a venue id and 400 on the uuid check.
    */
   @Get('memberships')
-  listMemberships(@CurrentUserId() userId: string): Promise<VenueMembershipSummary[]> {
+  listMemberships(@CurrentUserId() userId: number): Promise<VenueMembershipSummary[]> {
     return this.venues.listMemberships(userId);
   }
 
   @Get(':venueId/dashboard')
   getDashboard(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Query(validateWith(dashboardQuerySchema)) query: DashboardQuery
   ): Promise<VenueDashboardResponse> {
@@ -47,7 +47,7 @@ export class VenuesController {
   @Post(':venueId/walk-ins')
   @HttpCode(HttpStatus.CREATED)
   recordWalkIn(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Body(validateWith(recordWalkInBodySchema)) body: RecordWalkInBody
   ): Promise<RecordWalkInResponse> {
@@ -57,7 +57,7 @@ export class VenuesController {
   @Post(':venueId/blackouts')
   @HttpCode(HttpStatus.CREATED)
   addBlackout(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Body(validateWith(addBlackoutBodySchema)) body: AddBlackoutBody
   ): Promise<void> {
@@ -67,7 +67,7 @@ export class VenuesController {
   @Post(':venueId/payments')
   @HttpCode(HttpStatus.CREATED)
   recordPayment(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Body(validateWith(recordPaymentBodySchema)) body: RecordPaymentBody
   ): Promise<RecordPaymentResponse> {

@@ -2,7 +2,18 @@ import { z } from 'zod';
 
 import { DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT } from './consts';
 
-export const idSchema = z.guid();
+/**
+ * Every key in the schema is a bigint identity column, so an id is a positive whole number.
+ *
+ * Coerced, because ids arrive as strings from three places that cannot type them: a path
+ * segment, a query parameter, and a form field. Validation still rejects `0`, a negative, a
+ * fraction and anything unparseable, so a malformed id fails at the edge rather than reaching
+ * Postgres and coming back as an unhelpful 500.
+ *
+ * `MAX_SAFE_INTEGER` is the ceiling rather than bigint's: a value above it has already lost
+ * precision by the time zod sees it, and would silently match the wrong row.
+ */
+export const idSchema = z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 
 /** ISO-8601 with an explicit offset. Naive local times are rejected at the edge, not guessed at. */
 export const isoDateTimeSchema = z.iso.datetime({ offset: true });

@@ -1,5 +1,5 @@
 export type OpeningWindow = {
-  courtId: string;
+  courtId: number;
   /** 0 = Monday, venue-local. See MONDAY_INDEX in src/consts.ts. */
   dayOfWeek: number;
   /** Venue-local wall-clock time, 'HH:mm' or 'HH:mm:ss'. */
@@ -15,11 +15,11 @@ export type Interval = {
 };
 
 export type BlockedInterval = Interval & {
-  courtId: string;
+  courtId: number;
 };
 
 export type CourtAvailability = {
-  courtId: string;
+  courtId: number;
   /** Maximal free intervals, sorted, non-overlapping, non-adjacent. */
   free: Interval[];
 };

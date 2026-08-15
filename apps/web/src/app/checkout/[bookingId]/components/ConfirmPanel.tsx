@@ -8,7 +8,7 @@ import { Button } from '@/components/shadcn/ui/button';
 import type { ConfirmFormState } from '@/server-actions/confirmBooking';
 
 type ConfirmPanelProps = {
-  bookingId: string;
+  bookingId: number;
   expiresAtIso: string;
   action: (state: ConfirmFormState, formData: FormData) => Promise<ConfirmFormState>;
 };

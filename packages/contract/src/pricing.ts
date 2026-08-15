@@ -25,8 +25,8 @@ export const dayOfWeekSchema = z.coerce.number().int().min(0).max(6);
 // ---------------------------------------------------------------- price rules
 
 export type PriceRuleSummary = {
-  id: string;
-  courtId: string;
+  id: number;
+  courtId: number;
   priority: number;
   dayOfWeek: number | null;
   startsAt: string | null;
@@ -72,7 +72,7 @@ export type UpsertPriceRuleBody = z.infer<typeof upsertPriceRuleBodySchema>;
 // ------------------------------------------------------------- opening windows
 
 export type OpeningWindowSummary = {
-  id: string;
+  id: number;
   dayOfWeek: number;
   startsAt: string;
   durationMinutes: number;
@@ -101,7 +101,7 @@ export type ReplaceOpeningWindowsBody = z.infer<typeof replaceOpeningWindowsBody
 // ------------------------------------------------------------------- courts
 
 export type OwnedCourt = {
-  id: string;
+  id: number;
   name: string;
   sport: Sport;
   surface: CourtSurface;
@@ -132,7 +132,7 @@ export type UpsertCourtBody = z.infer<typeof upsertCourtBodySchema>;
 
 /** What the owner's pricing screen loads in one go. */
 export type CourtPricingResponse = {
-  courtId: string;
+  courtId: number;
   courtName: string;
   venueTimezone: string;
   rules: PriceRuleSummary[];

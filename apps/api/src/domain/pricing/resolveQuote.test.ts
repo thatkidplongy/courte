@@ -6,6 +6,21 @@ import { ValidationError } from '@/domain/errors';
 import type { PriceRule } from './resolveQuote';
 import { resolveQuote } from './resolveQuote';
 
+/**
+ * Ids are integers. Named constants rather than bare numbers so a failing
+ * assertion still says which fixture it means.
+ */
+const BASE = 1;
+const C1 = 2;
+const PEAK = 3;
+const MEMBER = 4;
+const EVENING = 5;
+const HOLIDAY = 6;
+const RISE = 7;
+const PROMO = 8;
+const AAA = 9;
+const BBB = 10;
+
 const MANILA = 'Asia/Manila';
 const at = (iso: string): number => DateTime.fromISO(iso, { zone: MANILA }).toMillis();
 
@@ -14,8 +29,8 @@ const MONDAY = '2026-08-10';
 const SATURDAY = '2026-08-15';
 
 const baseRule: PriceRule = {
-  id: 'base',
-  courtId: 'c1',
+  id: BASE,
+  courtId: C1,
   priority: 0,
   dayOfWeek: null,
   startsAt: null,
@@ -27,8 +42,8 @@ const baseRule: PriceRule = {
 };
 
 const weekdayPeak: PriceRule = {
-  id: 'peak',
-  courtId: 'c1',
+  id: PEAK,
+  courtId: C1,
   priority: 10,
   dayOfWeek: 0,
   startsAt: '17:00',
@@ -40,8 +55,8 @@ const weekdayPeak: PriceRule = {
 };
 
 const memberRate: PriceRule = {
-  id: 'member',
-  courtId: 'c1',
+  id: MEMBER,
+  courtId: C1,
   priority: 20,
   dayOfWeek: null,
   startsAt: null,
@@ -63,7 +78,7 @@ describe('resolveQuote', () => {
 
     expect(quote.totalCents).toBe(100000);
     expect(quote.snapshot.segments).toHaveLength(1);
-    expect(quote.snapshot.segments[0]?.ruleId).toBe('base');
+    expect(quote.snapshot.segments[0]?.ruleId).toBe(BASE);
   });
 
   it('splits a booking crossing a peak boundary and prices each stretch at its own rate', () => {
@@ -76,7 +91,7 @@ describe('resolveQuote', () => {
     });
 
     expect(quote.totalCents).toBe(50000 + 2 * 70000);
-    expect(quote.snapshot.segments.map(s => s.ruleId)).toEqual(['base', 'peak']);
+    expect(quote.snapshot.segments.map(s => s.ruleId)).toEqual([BASE, PEAK]);
     expect(quote.snapshot.segments[1]?.minutes).toBe(120);
   });
 
@@ -89,7 +104,7 @@ describe('resolveQuote', () => {
     });
 
     expect(quote.totalCents).toBe(100000);
-    expect(quote.snapshot.segments[0]?.ruleId).toBe('base');
+    expect(quote.snapshot.segments[0]?.ruleId).toBe(BASE);
   });
 
   it('applies member pricing only to members', () => {
@@ -129,7 +144,7 @@ describe('resolveQuote', () => {
   });
 
   it('refuses to quote a segment no rule covers', () => {
-    const eveningOnly: PriceRule = { ...baseRule, id: 'evening', startsAt: '18:00', endsAt: '22:00' };
+    const eveningOnly: PriceRule = { ...baseRule, id: EVENING, startsAt: '18:00', endsAt: '22:00' };
 
     expect(() =>
       resolveQuote({
@@ -166,7 +181,7 @@ describe('resolveQuote', () => {
   describe('date-scoped rules', () => {
     const holiday: PriceRule = {
       ...baseRule,
-      id: 'holiday',
+      id: HOLIDAY,
       priority: 20,
       validFrom: SATURDAY,
       validTo: SATURDAY,
@@ -190,7 +205,7 @@ describe('resolveQuote', () => {
     });
 
     it('treats validFrom alone as a price rise from that date onwards', () => {
-      const rise = { ...holiday, id: 'rise', validFrom: SATURDAY, validTo: null };
+      const rise = { ...holiday, id: RISE, validFrom: SATURDAY, validTo: null };
 
       expect(quoteOn(MONDAY, [baseRule, rise]).totalCents).toBe(50000);
       expect(quoteOn(SATURDAY, [baseRule, rise]).totalCents).toBe(90000);
@@ -198,7 +213,7 @@ describe('resolveQuote', () => {
     });
 
     it('treats validTo alone as a promotion that expires', () => {
-      const promo = { ...holiday, id: 'promo', validFrom: null, validTo: MONDAY };
+      const promo = { ...holiday, id: PROMO, validFrom: null, validTo: MONDAY };
 
       expect(quoteOn(MONDAY, [baseRule, promo]).totalCents).toBe(90000);
       expect(quoteOn(SATURDAY, [baseRule, promo]).totalCents).toBe(50000);
@@ -243,8 +258,8 @@ describe('resolveQuote', () => {
    * but that the same one wins every time, whatever order they arrive in.
    */
   it('resolves equal-priority rules identically regardless of input order', () => {
-    const left: PriceRule = { ...baseRule, id: 'aaa', ratePerHourCents: 11100 };
-    const right: PriceRule = { ...baseRule, id: 'bbb', ratePerHourCents: 22200 };
+    const left: PriceRule = { ...baseRule, id: AAA, ratePerHourCents: 11100 };
+    const right: PriceRule = { ...baseRule, id: BBB, ratePerHourCents: 22200 };
     const requested = { start: at(`${MONDAY}T10:00`), end: at(`${MONDAY}T11:00`) };
 
     const forwards = resolveQuote({ rules: [left, right], requested, timezone: MANILA, isMember: false });

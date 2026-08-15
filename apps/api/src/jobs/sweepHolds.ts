@@ -19,10 +19,10 @@ export const sweepHolds = async (): Promise<{ released: number; offered: number;
 
   // A swept hold's booking is dead: the player never confirmed. Without this, confirm
   // attempts on long-abandoned checkouts would linger as 'pending' rows forever.
-  const bookingIds = [...new Set(released.map(r => r.bookingId).filter((id): id is string => id !== null))];
-  const cancelled = await query<{ id: string }>(
-    `UPDATE bookings SET status = 'cancelled', cancelled_at = now()
-     WHERE id = ANY($1::uuid[]) AND status = 'pending'
+  const bookingIds = [...new Set(released.map(r => r.bookingId).filter((id): id is number => id !== null))];
+  const cancelled = await query<{ id: number }>(
+    `UPDATE "Booking" SET status = 'cancelled', cancelled_at = now()
+     WHERE id = ANY($1::bigint[]) AND status = 'pending'
      RETURNING id`,
     [bookingIds]
   );

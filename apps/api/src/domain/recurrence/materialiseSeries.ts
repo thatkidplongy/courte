@@ -16,15 +16,15 @@ import { expandOccurrences } from './expandOccurrences';
  */
 
 export type SeriesTemplate = {
-  id: string;
-  createdBy: string;
-  venueId: string;
+  id: number;
+  createdBy: number;
+  venueId: number;
   rrule: string;
   timezone: string;
   dtstart: Date;
   durationMinutes: number;
   source: BookingSource;
-  courtIds: string[];
+  courtIds: number[];
   courtBufferMinutes: number;
 };
 
@@ -41,7 +41,7 @@ export type MaterialiseDeps = {
     quote: OccurrenceQuote;
   }): Promise<'created' | 'already-exists' | 'conflict'>;
   quoteOccurrence(series: SeriesTemplate, start: Date, end: Date): Promise<OccurrenceQuote>;
-  advanceHorizon(seriesId: string, until: Date): Promise<void>;
+  advanceHorizon(seriesId: number, until: Date): Promise<void>;
 };
 
 export type MaterialiseParams = {

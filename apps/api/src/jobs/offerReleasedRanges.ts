@@ -4,7 +4,7 @@ import { findWaitingCandidates, markOffered } from '@/db/repositories/waitlistRe
 import { matchOffers, type ReleasedRange } from '@/domain/waitlist/matchOffers';
 
 export type ReleasedSlot = {
-  courtId: string;
+  courtId: number;
   duringStart: Date;
   duringEnd: Date;
 };

@@ -17,7 +17,7 @@ import { ValidationError } from '@/domain/errors';
  */
 
 export type SoldSlot = {
-  bookingId: string;
+  bookingId: number;
   start: number;
   end: number;
 };

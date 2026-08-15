@@ -18,7 +18,7 @@ const asPostgresError = (error: unknown): PostgresError | null => {
 };
 
 /**
- * Raised by `reservations_no_overlap` when a range collides with an existing active
+ * Raised by `reservation_no_overlap` when a range collides with an existing active
  * reservation. This is the expected outcome of a lost race, not a fault — the caller turns it
  * into "that slot has just been taken". See docs/adr/0002.
  */

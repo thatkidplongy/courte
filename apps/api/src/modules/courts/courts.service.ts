@@ -64,11 +64,11 @@ export class CourtsService {
     };
   }
 
-  getVenueSchedule(courtId: string, date: string | undefined): Promise<VenueScheduleResponse> {
+  getVenueSchedule(courtId: number, date: string | undefined): Promise<VenueScheduleResponse> {
     return getVenueSchedule(courtId, date);
   }
 
-  async getAvailability(courtId: string, date: string | undefined): Promise<CourtAvailabilityResponse> {
+  async getAvailability(courtId: number, date: string | undefined): Promise<CourtAvailabilityResponse> {
     const court = await findCourtById(courtId);
     if (!court) throw new NotFoundError('Court');
 

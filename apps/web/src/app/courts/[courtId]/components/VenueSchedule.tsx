@@ -20,10 +20,13 @@ type VenueScheduleProps = {
   seriesAction: (state: CreateSeriesFormState, formData: FormData) => Promise<CreateSeriesFormState>;
 };
 
+/**
+ * Two swatches, not three. Every unbookable cell now prints its own reason — Booked, Closed or
+ * Past — so a third swatch would be a key to a colour that no longer carries the meaning.
+ */
 const LEGEND = [
   { className: 'bg-primary', label: 'Selected' },
-  { className: 'border-border border bg-white', label: 'Available' },
-  { className: 'bg-muted', label: 'Booked or closed' },
+  { className: 'border-border border bg-white', label: 'Available — the price is that hour’s rate' },
 ] as const;
 
 const Legend = () => (
@@ -34,7 +37,7 @@ const Legend = () => (
         {entry.label}
       </li>
     ))}
-    <li>Rates shown are that hour&apos;s, so peak pricing is visible in the cell.</li>
+    <li>Grey cells say why: Booked, Closed, or crossed out for an hour that has gone.</li>
   </ul>
 );
 

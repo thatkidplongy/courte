@@ -80,11 +80,11 @@ export type CourtRules = {
  * chips a card shows are an availability question, and availability is backend work.
  */
 export type CourtSearchItem = CourtRules & {
-  id: string;
+  id: number;
   name: string;
   sport: Sport;
   surface: CourtSurface;
-  venueId: string;
+  venueId: number;
   venueName: string;
   venueAddress: string;
   venueTimezone: string;
@@ -112,10 +112,11 @@ export const venueScheduleQuerySchema = z.object({
 export type VenueScheduleQuery = z.infer<typeof venueScheduleQuerySchema>;
 
 /**
- * `closed` covers both "the venue is not open then" and "that hour has already gone". Neither
- * is bookable and neither is the venue's fault, which is what separates them from `booked`.
+ * Three ways an hour can be unbookable, kept apart because the grid names the reason. `closed`
+ * is the venue's hours, `past` is the clock, `booked` is somebody else — and only the last is a
+ * reason to come back and check again later.
  */
-export type ScheduleCellState = 'open' | 'booked' | 'closed';
+export type ScheduleCellState = 'open' | 'booked' | 'closed' | 'past';
 
 export type VenueScheduleCell = {
   startIso: string;
@@ -125,7 +126,7 @@ export type VenueScheduleCell = {
 };
 
 export type VenueScheduleCourt = CourtRules & {
-  id: string;
+  id: number;
   name: string;
   sport: Sport;
   surface: CourtSurface;
@@ -137,7 +138,7 @@ export type VenueScheduleCourt = CourtRules & {
  * but is really choosing between that venue's courts, so the page needs all of them.
  */
 export type VenueScheduleResponse = {
-  venueId: string;
+  venueId: number;
   venueName: string;
   venueAddress: string;
   venueTimezone: string;
@@ -148,7 +149,7 @@ export type VenueScheduleResponse = {
   venuePhotos: VenuePhoto[];
   venueAmenities: Amenity[];
   /** The court that was asked for — its row opens selected. */
-  courtId: string;
+  courtId: number;
   dayStartIso: string;
   /** Venue-local opening span for the day, already formatted. Null when nothing opens. */
   openingLabel: string | null;
@@ -158,11 +159,11 @@ export type VenueScheduleResponse = {
 };
 
 export type CourtAvailabilityResponse = CourtRules & {
-  id: string;
+  id: number;
   name: string;
   sport: Sport;
   surface: CourtSurface;
-  venueId: string;
+  venueId: number;
   venueTimezone: string;
   /** Start of the requested day in the venue's zone, so the web can build its hour pickers. */
   dayStartIso: string;

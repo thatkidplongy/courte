@@ -18,7 +18,7 @@ describe('CourtCard', () => {
     render(<CourtCard court={buildCourt()} dateIso="2026-08-13" />);
 
     const chip = screen.getByRole('link', { name: '8:00 PM' });
-    expect(chip).toHaveAttribute('href', '/courts/court-1?date=2026-08-13&start=2026-08-13T12%3A00%3A00.000Z');
+    expect(chip).toHaveAttribute('href', '/courts/1?date=2026-08-13&start=2026-08-13T12%3A00%3A00.000Z');
   });
 
   /**

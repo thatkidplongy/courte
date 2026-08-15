@@ -4,9 +4,9 @@ import { query } from '@/db/client';
 import type { WaitlistCandidate } from '@/domain/waitlist/matchOffers';
 
 type CandidateRow = {
-  id: string;
-  court_id: string | null;
-  venue_id: string | null;
+  id: number;
+  court_id: number | null;
+  venue_id: number | null;
   desired_start: string;
   desired_end: string;
   min_duration_minutes: number;
@@ -18,7 +18,7 @@ type CandidateRow = {
  * venue. One bulk query per sweep — the matching itself is pure (domain/waitlist).
  */
 export const findWaitingCandidates = async (
-  venueIds: string[],
+  venueIds: number[],
   rangeStart: Date,
   rangeEnd: Date
 ): Promise<WaitlistCandidate[]> => {
@@ -29,11 +29,11 @@ export const findWaitingCandidates = async (
     SELECT w.id, w.court_id, w.venue_id,
            lower(w.desired)::text AS desired_start, upper(w.desired)::text AS desired_end,
            w.min_duration_minutes, w.created_at::text AS created_at
-    FROM waitlist_entries w
+    FROM "WaitlistEntry" w
     WHERE w.state = 'waiting'
       AND w.desired && tstzrange($2, $3)
-      AND (w.venue_id = ANY($1::uuid[])
-           OR w.court_id IN (SELECT id FROM courts WHERE venue_id = ANY($1::uuid[])))
+      AND (w.venue_id = ANY($1::bigint[])
+           OR w.court_id IN (SELECT id FROM "Court" WHERE venue_id = ANY($1::bigint[])))
     ORDER BY w.created_at ASC
     `,
     [venueIds, rangeStart.toISOString(), rangeEnd.toISOString()]
@@ -50,8 +50,8 @@ export const findWaitingCandidates = async (
 };
 
 export type OfferToRecord = {
-  entryId: string;
-  courtId: string;
+  entryId: number;
+  courtId: number;
   interval: { start: number; end: number };
 };
 
@@ -64,9 +64,9 @@ export const markOffered = async (offers: OfferToRecord[], claimExpiresAt: Date)
   let recorded = 0;
 
   for (const offer of offers) {
-    const rows = await query<{ id: string }>(
+    const rows = await query<{ id: number }>(
       `
-      UPDATE waitlist_entries
+      UPDATE "WaitlistEntry"
       SET state = 'offered', offered_at = now(), claim_expires_at = $2,
           offered_court_id = $3, offered_during = tstzrange($4, $5)
       WHERE id = $1 AND state = 'waiting'
@@ -88,9 +88,9 @@ export const markOffered = async (offers: OfferToRecord[], claimExpiresAt: Date)
 
 /** Lapsed offers rejoin the queue as fresh waiters so the next sweep offers to someone else. */
 export const expireLapsedOffers = async (): Promise<number> => {
-  const rows = await query<{ id: string }>(
+  const rows = await query<{ id: number }>(
     `
-    UPDATE waitlist_entries
+    UPDATE "WaitlistEntry"
     SET state = 'waiting', offered_at = NULL, claim_expires_at = NULL,
         offered_court_id = NULL, offered_during = NULL
     WHERE state = 'offered' AND claim_expires_at <= now()
@@ -102,17 +102,17 @@ export const expireLapsedOffers = async (): Promise<number> => {
 };
 
 export type InsertWaitlistParams = {
-  userId: string;
-  courtId: string;
+  userId: number;
+  courtId: number;
   desiredStart: Date;
   desiredEnd: Date;
   minDurationMinutes: number;
 };
 
-export const insertWaitlistEntry = async (params: InsertWaitlistParams): Promise<string> => {
-  const rows = await query<{ id: string }>(
+export const insertWaitlistEntry = async (params: InsertWaitlistParams): Promise<number> => {
+  const rows = await query<{ id: number }>(
     `
-    INSERT INTO waitlist_entries (user_id, court_id, desired, min_duration_minutes)
+    INSERT INTO "WaitlistEntry" (user_id, court_id, desired, min_duration_minutes)
     VALUES ($1, $2, tstzrange($3, $4), $5)
     RETURNING id
     `,
@@ -131,20 +131,20 @@ export const insertWaitlistEntry = async (params: InsertWaitlistParams): Promise
 };
 
 type UserEntryRow = {
-  id: string;
+  id: number;
   state: WaitlistState;
   desired_start: string;
   desired_end: string;
   court_name: string;
   venue_name: string;
   venue_timezone: string;
-  offered_court_id: string | null;
+  offered_court_id: number | null;
   offered_start: string | null;
   claim_expires_at: string | null;
 };
 
 export type UserWaitlistEntry = {
-  id: string;
+  id: number;
   /** Native waitlist_state enum column, so the union is exact rather than a loose string. */
   state: WaitlistState;
   desiredStart: Date;
@@ -152,12 +152,12 @@ export type UserWaitlistEntry = {
   courtName: string;
   venueName: string;
   venueTimezone: string;
-  offeredCourtId: string | null;
+  offeredCourtId: number | null;
   offeredStart: Date | null;
   claimExpiresAt: Date | null;
 };
 
-export const findWaitlistEntriesForUser = async (userId: string): Promise<UserWaitlistEntry[]> => {
+export const findWaitlistEntriesForUser = async (userId: number): Promise<UserWaitlistEntry[]> => {
   const rows = await query<UserEntryRow>(
     `
     SELECT w.id, w.state,
@@ -165,9 +165,9 @@ export const findWaitlistEntriesForUser = async (userId: string): Promise<UserWa
            c.name AS court_name, v.name AS venue_name, v.timezone AS venue_timezone,
            w.offered_court_id, lower(w.offered_during)::text AS offered_start,
            w.claim_expires_at::text AS claim_expires_at
-    FROM waitlist_entries w
-    JOIN courts c ON c.id = w.court_id
-    JOIN venues v ON v.id = c.venue_id
+    FROM "WaitlistEntry" w
+    JOIN "Court" c ON c.id = w.court_id
+    JOIN "Venue" v ON v.id = c.venue_id
     WHERE w.user_id = $1 AND w.state IN ('waiting', 'offered')
     ORDER BY lower(w.desired) ASC
     `,

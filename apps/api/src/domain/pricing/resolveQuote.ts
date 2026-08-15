@@ -19,8 +19,8 @@ import { ValidationError } from '@/domain/errors';
  */
 
 export type PriceRule = {
-  id: string;
-  courtId: string;
+  id: number;
+  courtId: number;
   priority: number;
   /** 0 = Monday, venue-local; null matches any day. */
   dayOfWeek: number | null;
@@ -39,7 +39,7 @@ export type PriceRule = {
 };
 
 export type QuoteSegment = {
-  ruleId: string;
+  ruleId: number;
   start: string;
   end: string;
   minutes: number;
@@ -122,7 +122,7 @@ export const resolveQuote = (params: ResolveQuoteParams): Quote => {
   // arrived in, so two equal-priority rules would resolve differently depending on the query
   // that fetched them. `id` is arbitrary but it is *fixed*, which is the property that matters
   // — genuine ambiguity is refused at write time by assertNoRuleConflict.
-  const ranked = [...params.rules].sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
+  const ranked = [...params.rules].sort((a, b) => b.priority - a.priority || a.id - b.id);
   const cuts = collectCutPoints(params);
   const segments: QuoteSegment[] = [];
 

@@ -5,6 +5,19 @@ import { ValidationError } from '@/domain/errors';
 
 import { assertWindowsCoverBookings, findUncoveredSlots } from './assertWindowsCoverBookings';
 
+/**
+ * Ids are integers. Named constants rather than bare numbers so a failing
+ * assertion still says which fixture it means.
+ */
+const COURT_1 = 1;
+
+/** Bookings, named so a failing assertion says which one escaped the hours. */
+const B1 = 1;
+const EVENING = 2;
+const STRADDLES = 3;
+const MORNING = 4;
+const ORPHAN = 5;
+
 const MANILA = 'Asia/Manila';
 const at = (iso: string): number => DateTime.fromISO(iso, { zone: MANILA }).toMillis();
 
@@ -13,7 +26,7 @@ const MONDAY = '2026-08-10';
 
 /** Open 08:00 for 14 hours — to 22:00 — every day. */
 const wideHours = Array.from({ length: 7 }, (_, day) => ({
-  courtId: 'court-1',
+  courtId: COURT_1,
   dayOfWeek: day,
   startsAt: '08:00',
   durationMinutes: 840,
@@ -22,7 +35,7 @@ const wideHours = Array.from({ length: 7 }, (_, day) => ({
 /** The same week shortened to close at 19:00. */
 const shortHours = wideHours.map(window => ({ ...window, durationMinutes: 660 }));
 
-const slot = (from: string, to: string, bookingId = 'b1') => ({
+const slot = (from: string, to: string, bookingId = B1) => ({
   bookingId,
   start: at(`${MONDAY}T${from}`),
   end: at(`${MONDAY}T${to}`),
@@ -41,10 +54,10 @@ describe('findUncoveredSlots', () => {
     const uncovered = findUncoveredSlots({
       windows: shortHours,
       timezone: MANILA,
-      slots: [slot('20:00', '21:00', 'evening')],
+      slots: [slot('20:00', '21:00', EVENING)],
     });
 
-    expect(uncovered.map(s => s.bookingId)).toEqual(['evening']);
+    expect(uncovered.map(s => s.bookingId)).toEqual([EVENING]);
   });
 
   /** Partially outside is outside — the venue would be shut halfway through the game. */
@@ -52,20 +65,20 @@ describe('findUncoveredSlots', () => {
     const uncovered = findUncoveredSlots({
       windows: shortHours,
       timezone: MANILA,
-      slots: [slot('18:30', '19:30', 'straddles')],
+      slots: [slot('18:30', '19:30', STRADDLES)],
     });
 
-    expect(uncovered.map(s => s.bookingId)).toEqual(['straddles']);
+    expect(uncovered.map(s => s.bookingId)).toEqual([STRADDLES]);
   });
 
   it('keeps the ones that still fit and drops only those that do not', () => {
     const uncovered = findUncoveredSlots({
       windows: shortHours,
       timezone: MANILA,
-      slots: [slot('10:00', '11:00', 'morning'), slot('20:00', '21:00', 'evening')],
+      slots: [slot('10:00', '11:00', MORNING), slot('20:00', '21:00', EVENING)],
     });
 
-    expect(uncovered.map(s => s.bookingId)).toEqual(['evening']);
+    expect(uncovered.map(s => s.bookingId)).toEqual([EVENING]);
   });
 
   it('flags everything when the day is removed altogether', () => {
@@ -74,10 +87,10 @@ describe('findUncoveredSlots', () => {
     const uncovered = findUncoveredSlots({
       windows: noMonday,
       timezone: MANILA,
-      slots: [slot('10:00', '11:00', 'orphan')],
+      slots: [slot('10:00', '11:00', ORPHAN)],
     });
 
-    expect(uncovered.map(s => s.bookingId)).toEqual(['orphan']);
+    expect(uncovered.map(s => s.bookingId)).toEqual([ORPHAN]);
   });
 });
 
@@ -99,7 +112,7 @@ describe('assertWindowsCoverBookings', () => {
 
   /** A long list is summarised rather than dumped into a sentence nobody will read. */
   it('names the first few and counts the rest', () => {
-    const slots = Array.from({ length: 5 }, (_, index) => slot('20:00', '21:00', `b${index}`));
+    const slots = Array.from({ length: 5 }, (_, index) => slot('20:00', '21:00', index + 1));
 
     expect(() => assertWindowsCoverBookings({ windows: shortHours, timezone: MANILA, slots })).toThrow(/and 2 more/);
   });

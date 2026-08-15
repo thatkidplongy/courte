@@ -4,19 +4,28 @@ import { describe, expect, it, vi } from 'vitest';
 import type { MaterialiseDeps, SeriesTemplate } from './materialiseSeries';
 import { materialiseSeries } from './materialiseSeries';
 
+/**
+ * Ids are integers. Named constants rather than bare numbers so a failing
+ * assertion still says which fixture it means.
+ */
+const S1 = 1;
+const U1 = 2;
+const V1 = 3;
+const C1 = 4;
+
 const MANILA = 'Asia/Manila';
 const manila = (iso: string): Date => DateTime.fromISO(iso, { zone: MANILA }).toJSDate();
 
 const series: SeriesTemplate = {
-  id: 's1',
-  createdBy: 'u1',
-  venueId: 'v1',
+  id: S1,
+  createdBy: U1,
+  venueId: V1,
   rrule: 'FREQ=WEEKLY;BYDAY=TU',
   timezone: MANILA,
   dtstart: manila('2026-08-11T19:00'),
   durationMinutes: 120,
   source: 'online',
-  courtIds: ['c1'],
+  courtIds: [C1],
   courtBufferMinutes: 0,
 };
 
@@ -65,7 +74,7 @@ describe('materialiseSeries', () => {
 
     await materialiseSeries(deps, { series, window });
 
-    expect(deps.advanceHorizon).toHaveBeenCalledWith('s1', new Date(window.end));
+    expect(deps.advanceHorizon).toHaveBeenCalledWith(S1, new Date(window.end));
   });
 
   it('quotes each occurrence individually so peak pricing lands per week', async () => {

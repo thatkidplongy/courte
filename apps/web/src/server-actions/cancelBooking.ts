@@ -4,8 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { MALFORMED_ID_ERROR } from '@/consts';
 import { ApiError } from '@/lib/api/client';
 import { cancelBooking as cancelRequest } from '@/lib/api/resources';
+import { readFormId } from '@/lib/ids';
 
 export type CancelFormState = {
   error?: string;
@@ -18,10 +20,13 @@ export type CancelFormState = {
  */
 export const cancelBooking = async (_previous: CancelFormState, formData: FormData): Promise<CancelFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
+
+  const bookingId = readFormId(formData, 'bookingId');
+  if (bookingId === null) return { error: MALFORMED_ID_ERROR };
 
   try {
-    await cancelRequest(session.user.id, String(formData.get('bookingId') ?? ''));
+    await cancelRequest(session.courteUserId, bookingId);
   } catch (error) {
     if (error instanceof ApiError) return { error: error.toFormMessage() };
     throw error;

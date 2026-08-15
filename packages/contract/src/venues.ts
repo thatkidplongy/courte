@@ -33,7 +33,7 @@ export type VenuePhoto = {
 };
 
 export type VenueMembershipSummary = {
-  venueId: string;
+  venueId: number;
   venueName: string;
   role: VenueRole;
 };
@@ -46,7 +46,7 @@ export const dashboardQuerySchema = z.object({
 export type DashboardQuery = z.infer<typeof dashboardQuerySchema>;
 
 export type VenueBookingRow = {
-  id: string;
+  id: number;
   courtName: string;
   customer: string;
   status: BookingStatus;
@@ -59,7 +59,7 @@ export type VenueBookingRow = {
 };
 
 export type VenueDashboardResponse = {
-  venueId: string;
+  venueId: number;
   venueName: string;
   venueTimezone: string;
   stats: {
@@ -68,7 +68,7 @@ export type VenueDashboardResponse = {
     collectedThisMonthCents: number;
   };
   bookings: VenueBookingRow[];
-  courts: Array<{ id: string; name: string }>;
+  courts: Array<{ id: number; name: string }>;
   /**
    * Bookings per venue-local hour over the last 30 days — the shape of the venue's demand.
    * Always 24 entries, hour 0 to 23, so a quiet hour is a visible zero rather than a gap.
@@ -87,7 +87,7 @@ export const recordWalkInBodySchema = z.object({
 export type RecordWalkInBody = z.infer<typeof recordWalkInBodySchema>;
 
 export type RecordWalkInResponse = {
-  bookingId: string;
+  bookingId: number;
   totalCents: number;
 };
 
@@ -114,7 +114,7 @@ export const recordPaymentBodySchema = z.object({
 export type RecordPaymentBody = z.infer<typeof recordPaymentBodySchema>;
 
 export type RecordPaymentResponse = {
-  bookingId: string;
+  bookingId: number;
   method: PaymentMethod;
   amountCents: number;
 };

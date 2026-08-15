@@ -30,24 +30,24 @@ export class InventoryController {
   constructor(private readonly inventory: InventoryService) {}
 
   @Get('courts')
-  listCourts(@CurrentUserId() userId: string, @Param('venueId') venueId: string): Promise<OwnedCourt[]> {
+  listCourts(@CurrentUserId() userId: number, @Param('venueId') venueId: string): Promise<OwnedCourt[]> {
     return this.inventory.listCourts(userId, parseId(venueId, 'venueId'));
   }
 
   @Post('courts')
   @HttpCode(HttpStatus.CREATED)
   createCourt(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Body(validateWith(upsertCourtBodySchema)) body: UpsertCourtBody
-  ): Promise<{ courtId: string }> {
+  ): Promise<{ courtId: number }> {
     return this.inventory.createCourt(userId, parseId(venueId, 'venueId'), body);
   }
 
   @Put('courts/:courtId')
   @HttpCode(HttpStatus.NO_CONTENT)
   updateCourt(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Param('courtId') courtId: string,
     @Body(validateWith(upsertCourtBodySchema)) body: UpsertCourtBody
@@ -63,7 +63,7 @@ export class InventoryController {
   @Delete('courts/:courtId')
   @HttpCode(HttpStatus.NO_CONTENT)
   archiveCourt(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Param('courtId') courtId: string
   ): Promise<void> {
@@ -73,7 +73,7 @@ export class InventoryController {
   @Post('courts/:courtId/restore')
   @HttpCode(HttpStatus.NO_CONTENT)
   restoreCourt(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Param('courtId') courtId: string
   ): Promise<void> {
@@ -82,7 +82,7 @@ export class InventoryController {
 
   @Get('courts/:courtId/pricing')
   getPricing(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Param('courtId') courtId: string
   ): Promise<CourtPricingResponse> {
@@ -92,7 +92,7 @@ export class InventoryController {
   @Post('courts/:courtId/price-rules')
   @HttpCode(HttpStatus.CREATED)
   createPriceRule(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Param('courtId') courtId: string,
     @Body(validateWith(upsertPriceRuleBodySchema)) body: UpsertPriceRuleBody
@@ -102,7 +102,7 @@ export class InventoryController {
 
   @Put('courts/:courtId/price-rules/:ruleId')
   updatePriceRule(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Param('courtId') courtId: string,
     @Param('ruleId') ruleId: string,
@@ -125,7 +125,7 @@ export class InventoryController {
   @Delete('courts/:courtId/price-rules/:ruleId')
   @HttpCode(HttpStatus.NO_CONTENT)
   deletePriceRule(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Param('courtId') courtId: string,
     @Param('ruleId') ruleId: string
@@ -141,7 +141,7 @@ export class InventoryController {
   /** PUT, not PATCH: the caller sends the whole week and the whole week is what is stored. */
   @Put('courts/:courtId/opening-windows')
   replaceOpeningWindows(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Param('venueId') venueId: string,
     @Param('courtId') courtId: string,
     @Body(validateWith(replaceOpeningWindowsBodySchema)) body: ReplaceOpeningWindowsBody

@@ -1,7 +1,19 @@
-import { Pool, type PoolClient, type QueryResultRow } from 'pg';
+import { Pool, types, type PoolClient, type QueryResultRow } from 'pg';
 
 import { env, isProduction } from '@/config/env';
 import { logger } from '@/lib/logger';
+
+/**
+ * `pg` hands back int8 as a STRING, and it is right to by default: bigint's range is wider than
+ * JS can hold, so parsing blindly would silently corrupt a large value. Every primary key in
+ * this schema is int8, so without this every id would arrive as '1' and compare unequal to 1.
+ *
+ * Parsing to a number is safe here because the contract's `idSchema` caps ids at
+ * MAX_SAFE_INTEGER, and nothing in this schema stores a bigint that is not an id. If a genuine
+ * big number column is ever added — a cursor, a byte count — it must be read as text and
+ * handled explicitly rather than relying on this.
+ */
+types.setTypeParser(types.builtins.INT8, value => Number(value));
 
 /**
  * One pool for the process, never a connection per request. Next re-evaluates modules on hot

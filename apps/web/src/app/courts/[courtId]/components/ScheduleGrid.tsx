@@ -1,12 +1,13 @@
 'use client';
 
-import type { VenueScheduleCourt } from '@courte/contract';
+import type { ScheduleCellState, VenueScheduleCourt } from '@courte/contract';
 
+import { UnavailableIcon } from '@/components/atoms/Icon';
 import { formatTime, formatWholePesos } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 export type SlotSelection = {
-  courtId: string;
+  courtId: number;
   startIso: string;
 };
 
@@ -19,6 +20,22 @@ type ScheduleGridProps = {
 };
 
 const CELL_BASE = 'w-full rounded-md py-2.5 text-center text-[11.5px] font-semibold transition';
+
+/**
+ * Every unbookable cell says why, in the cell. A grey box tells the reader nothing — worse, it
+ * reads the same whether the venue is shut, the hour has gone, or somebody already has it, and
+ * only the last of those is worth coming back for.
+ *
+ * `past` is the exception that carries the icon rather than a word. The reader can already see
+ * from the column header that the hour has gone, so the word would only repeat it; what they
+ * need is the mark that says "not this one" without competing with the two states that are
+ * actually news. Every cell still announces its reason in full to a screen reader.
+ */
+const UNBOOKABLE_LABELS: Record<Exclude<ScheduleCellState, 'open'>, string> = {
+  booked: 'Booked',
+  closed: 'Closed',
+  past: 'Already gone',
+};
 
 /**
  * Every court at the venue against every open hour. It is the screen's main instrument: a
@@ -63,12 +80,13 @@ export const ScheduleGrid = ({ courts, hourIsos, timezone, selection, onSelect }
 
               {court.cells.map(cell => {
                 const isSelected = selection?.courtId === court.id && selection.startIso === cell.startIso;
-                const isOpen = cell.state === 'open';
                 const label = formatTime(new Date(cell.startIso), timezone);
 
                 return (
                   <td key={cell.startIso} className="border-border border-l p-1.5">
-                    {isOpen ? (
+                    {/* Compared inline rather than through an `isOpen` alias so the else branch
+                        narrows to the three unbookable states the label map is keyed on. */}
+                    {cell.state === 'open' ? (
                       <button
                         type="button"
                         aria-pressed={isSelected}
@@ -85,10 +103,14 @@ export const ScheduleGrid = ({ courts, hourIsos, timezone, selection, onSelect }
                       </button>
                     ) : (
                       <span
-                        aria-label={`${court.name}, ${label}, ${cell.state === 'booked' ? 'booked' : 'unavailable'}`}
+                        aria-label={`${court.name}, ${label}, ${UNBOOKABLE_LABELS[cell.state].toLowerCase()}`}
                         className={cn(CELL_BASE, 'bg-muted text-muted-foreground block')}
                       >
-                        {cell.state === 'booked' ? '—' : ''}
+                        {cell.state === 'past' ? (
+                          <UnavailableIcon className="mx-auto h-3.5 w-3.5" />
+                        ) : (
+                          UNBOOKABLE_LABELS[cell.state]
+                        )}
                       </span>
                     )}
                   </td>

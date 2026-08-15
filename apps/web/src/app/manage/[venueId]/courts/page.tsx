@@ -10,6 +10,7 @@ import { Panel } from '@/components/molecules/Panel';
 import { COURT_SURFACE_LABELS, SPORT_LABELS } from '@/consts';
 import { isNotFound } from '@/lib/api/client';
 import { fetchOwnedCourts } from '@/lib/api/resources';
+import { parseRouteId } from '@/lib/ids';
 import { createCourt, setCourtArchived } from '@/server-actions/manageInventory';
 
 import { ArchiveToggle, CourtForm } from './components/CourtForms';
@@ -18,7 +19,7 @@ type PageProps = {
   params: Promise<{ venueId: string }>;
 };
 
-const CourtRow = ({ court, venueId }: { court: OwnedCourt; venueId: string }) => (
+const CourtRow = ({ court, venueId }: { court: OwnedCourt; venueId: number }) => (
   <li className="border-border flex flex-wrap items-center gap-4 rounded-md border p-4">
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-center gap-2.5">
@@ -50,11 +51,15 @@ const CourtRow = ({ court, venueId }: { court: OwnedCourt; venueId: string }) =>
  */
 const ManageCourtsPage = async ({ params }: PageProps) => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const { venueId } = await params;
+  const routeParams = await params;
 
-  const courts = await fetchOwnedCourts(session.user.id, venueId).catch(error => {
+  const venueId = parseRouteId(routeParams.venueId);
+
+  if (venueId === null) notFound();
+
+  const courts = await fetchOwnedCourts(session.courteUserId, venueId).catch(error => {
     if (isNotFound(error)) notFound();
     throw error;
   });

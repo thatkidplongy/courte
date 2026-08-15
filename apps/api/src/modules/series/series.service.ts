@@ -17,7 +17,7 @@ export class SeriesService {
    * back by timestamp. Same behaviour a series edit in a calendar app has, because failing a
    * whole season over one busy week is useless.
    */
-  async createSeries(userId: string, body: CreateSeriesBody): Promise<CreateSeriesResponse> {
+  async createSeries(userId: number, body: CreateSeriesBody): Promise<CreateSeriesResponse> {
     const court = await findCourtById(body.courtId);
     if (!court) throw new NotFoundError('Court');
     assertDurationAllowed(court, body.durationMinutes);

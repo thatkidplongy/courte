@@ -5,16 +5,29 @@ import { HoldExpiredError, NotFoundError, SlotUnavailableError } from '@/domain/
 import { cancelBooking, confirmBooking, placeHold } from './bookingService';
 import type { BookingWorkflowDeps, PlaceHoldParams } from './types';
 
+/**
+ * Ids are integers. Named constants rather than bare numbers so a failing
+ * assertion still says which fixture it means.
+ */
+const BOOKING_1 = 1;
+const U1 = 2;
+const V1 = 3;
+const C1 = 4;
+const R1 = 5;
+const C2 = 6;
+const INTRUDER = 7;
+const RES_1 = 8;
+
 const NOW = new Date('2026-08-10T09:00:00Z');
 
 const buildDeps = (overrides: Partial<BookingWorkflowDeps> = {}): BookingWorkflowDeps => ({
   bookings: {
-    insertPendingBooking: vi.fn().mockResolvedValue('booking-1'),
-    findBookingForUser: vi.fn().mockResolvedValue({ id: 'booking-1', status: 'pending', userId: 'u1', venueId: 'v1' }),
+    insertPendingBooking: vi.fn().mockResolvedValue(BOOKING_1),
+    findBookingForUser: vi.fn().mockResolvedValue({ id: BOOKING_1, status: 'pending', userId: U1, venueId: V1 }),
     updateBookingStatus: vi.fn().mockResolvedValue(undefined),
   },
   reservations: {
-    insertReservation: vi.fn().mockResolvedValue('res-1'),
+    insertReservation: vi.fn().mockResolvedValue(RES_1),
     promoteHoldsToBooking: vi.fn().mockResolvedValue(1),
     releaseReservationsForBooking: vi.fn().mockResolvedValue([]),
   },
@@ -24,10 +37,10 @@ const buildDeps = (overrides: Partial<BookingWorkflowDeps> = {}): BookingWorkflo
 });
 
 const buildHoldParams = (): PlaceHoldParams => ({
-  userId: 'u1',
-  court: { id: 'c1', venueId: 'v1', bufferMinutes: 15 },
-  slots: [{ courtId: 'c1', start: new Date('2026-08-10T10:00:00Z'), end: new Date('2026-08-10T11:00:00Z') }],
-  quote: { totalCents: 45000, snapshot: { ruleId: 'r1' } },
+  userId: U1,
+  court: { id: C1, venueId: V1, bufferMinutes: 15 },
+  slots: [{ courtId: C1, start: new Date('2026-08-10T10:00:00Z'), end: new Date('2026-08-10T11:00:00Z') }],
+  quote: { totalCents: 45000, snapshot: { ruleId: R1 } },
   source: 'online',
   holdTtlMinutes: 10,
   now: NOW,
@@ -89,8 +102,8 @@ describe('placeHold', () => {
     const deps = buildDeps();
     const params = buildHoldParams();
     params.slots = [
-      { courtId: 'c1', start: new Date('2026-08-10T10:00:00Z'), end: new Date('2026-08-10T11:00:00Z') },
-      { courtId: 'c2', start: new Date('2026-08-10T10:00:00Z'), end: new Date('2026-08-10T11:00:00Z') },
+      { courtId: C1, start: new Date('2026-08-10T10:00:00Z'), end: new Date('2026-08-10T11:00:00Z') },
+      { courtId: C2, start: new Date('2026-08-10T10:00:00Z'), end: new Date('2026-08-10T11:00:00Z') },
     ];
 
     await placeHold(deps, params);
@@ -103,10 +116,10 @@ describe('confirmBooking', () => {
   it('promotes holds and confirms the booking', async () => {
     const deps = buildDeps();
 
-    await confirmBooking(deps, { bookingId: 'booking-1', userId: 'u1' });
+    await confirmBooking(deps, { bookingId: BOOKING_1, userId: U1 });
 
     expect(deps.reservations.promoteHoldsToBooking).toHaveBeenCalled();
-    expect(deps.bookings.updateBookingStatus).toHaveBeenCalledWith(expect.anything(), 'booking-1', 'confirmed');
+    expect(deps.bookings.updateBookingStatus).toHaveBeenCalledWith(expect.anything(), BOOKING_1, 'confirmed');
   });
 
   it('kills the booking when the hold already expired', async () => {
@@ -118,10 +131,8 @@ describe('confirmBooking', () => {
       },
     });
 
-    await expect(confirmBooking(deps, { bookingId: 'booking-1', userId: 'u1' })).rejects.toBeInstanceOf(
-      HoldExpiredError
-    );
-    expect(deps.bookings.updateBookingStatus).toHaveBeenCalledWith(expect.anything(), 'booking-1', 'cancelled');
+    await expect(confirmBooking(deps, { bookingId: BOOKING_1, userId: U1 })).rejects.toBeInstanceOf(HoldExpiredError);
+    expect(deps.bookings.updateBookingStatus).toHaveBeenCalledWith(expect.anything(), BOOKING_1, 'cancelled');
   });
 
   it('reports not-found for a booking the user does not own', async () => {
@@ -133,7 +144,7 @@ describe('confirmBooking', () => {
       },
     });
 
-    await expect(confirmBooking(deps, { bookingId: 'booking-1', userId: 'intruder' })).rejects.toBeInstanceOf(
+    await expect(confirmBooking(deps, { bookingId: BOOKING_1, userId: INTRUDER })).rejects.toBeInstanceOf(
       NotFoundError
     );
   });
@@ -143,8 +154,8 @@ describe('cancelBooking', () => {
   it('releases reservations and notifies the waitlist after commit', async () => {
     const released = [
       {
-        id: 'res-1',
-        courtId: 'c1',
+        id: RES_1,
+        courtId: C1,
         duringStart: new Date('2026-08-10T10:00:00Z'),
         duringEnd: new Date('2026-08-10T11:00:00Z'),
       },
@@ -153,9 +164,7 @@ describe('cancelBooking', () => {
     const deps = buildDeps({
       bookings: {
         insertPendingBooking: vi.fn(),
-        findBookingForUser: vi
-          .fn()
-          .mockResolvedValue({ id: 'booking-1', status: 'confirmed', userId: 'u1', venueId: 'v1' }),
+        findBookingForUser: vi.fn().mockResolvedValue({ id: BOOKING_1, status: 'confirmed', userId: U1, venueId: V1 }),
         updateBookingStatus: vi.fn(),
       },
       reservations: {
@@ -166,8 +175,8 @@ describe('cancelBooking', () => {
     });
 
     await cancelBooking(deps, {
-      bookingId: 'booking-1',
-      userId: 'u1',
+      bookingId: BOOKING_1,
+      userId: U1,
       assertInsideCancellationWindow: vi.fn(),
       onReleased,
     });
@@ -180,17 +189,15 @@ describe('cancelBooking', () => {
     const deps = buildDeps({
       bookings: {
         insertPendingBooking: vi.fn(),
-        findBookingForUser: vi
-          .fn()
-          .mockResolvedValue({ id: 'booking-1', status: 'confirmed', userId: 'u1', venueId: 'v1' }),
+        findBookingForUser: vi.fn().mockResolvedValue({ id: BOOKING_1, status: 'confirmed', userId: U1, venueId: V1 }),
         updateBookingStatus: vi.fn(),
       },
     });
 
     await expect(
       cancelBooking(deps, {
-        bookingId: 'booking-1',
-        userId: 'u1',
+        bookingId: BOOKING_1,
+        userId: U1,
         assertInsideCancellationWindow: () => {
           throw windowError;
         },

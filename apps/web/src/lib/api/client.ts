@@ -39,13 +39,16 @@ export const isNotFound = (error: unknown): boolean => error instanceof ApiError
  * A caller token, minted per request and valid for minutes. Deliberately not stored anywhere:
  * there is no refresh problem to solve when the issuer and the caller are the same process.
  *
- * The subject is our own users.id — never Google's — and no role travels in it, because the
+ * The subject is our own "User".id — never Google's — and no role travels in it, because the
  * API resolves venue membership from the database on every request.
+ *
+ * `sub` must be a string by RFC 7519, so the id is stringified here and parsed back on the
+ * API side. That round trip is the JWT spec's, not ours.
  */
-const mintCallerToken = (userId: string): Promise<string> =>
+const mintCallerToken = (userId: number): Promise<string> =>
   new SignJWT({})
     .setProtectedHeader({ alg: 'HS256' })
-    .setSubject(userId)
+    .setSubject(String(userId))
     .setIssuer('courte-web')
     .setAudience('courte-api')
     .setIssuedAt()
@@ -54,7 +57,7 @@ const mintCallerToken = (userId: string): Promise<string> =>
 
 type RequestOptions = {
   /** Present for anything user-scoped; omitted on public reads like court search. */
-  userId?: string;
+  userId?: number;
   /** Service-to-service credential, for the identity endpoint only. */
   serviceKey?: boolean;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';

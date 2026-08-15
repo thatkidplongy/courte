@@ -20,7 +20,7 @@ const MIN_DURATION_OPTIONS: SelectOption[] = [
 ];
 
 type WaitlistFormProps = {
-  courtId: string;
+  courtId: number;
   /** Hour boundaries across the day, venue-local labels with UTC iso values. */
   hourOptions: WindowOption[];
   action: (state: JoinWaitlistFormState, formData: FormData) => Promise<JoinWaitlistFormState>;

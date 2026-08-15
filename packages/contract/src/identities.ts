@@ -13,5 +13,5 @@ export const upsertIdentityBodySchema = z.object({
 export type UpsertIdentityBody = z.infer<typeof upsertIdentityBodySchema>;
 
 export type UpsertIdentityResponse = {
-  userId: string;
+  userId: number;
 };

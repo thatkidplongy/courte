@@ -128,14 +128,14 @@ type PageProps = {
 
 const BookingsPage = async ({ searchParams }: PageProps) => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
   const { period: rawPeriod } = await searchParams;
   const period: BookingPeriod = isBookingPeriod(rawPeriod) ? rawPeriod : 'upcoming';
 
   const [bookingPage, waitlistEntries] = await Promise.all([
-    fetchBookings(session.user.id),
-    fetchWaitlistEntries(session.user.id),
+    fetchBookings(session.courteUserId),
+    fetchWaitlistEntries(session.courteUserId),
   ]);
 
   const now = Date.now();

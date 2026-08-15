@@ -3,8 +3,10 @@
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { MALFORMED_ID_ERROR } from '@/consts';
 import { ApiError } from '@/lib/api/client';
 import { placeHold as placeHoldRequest } from '@/lib/api/resources';
+import { readFormId } from '@/lib/ids';
 
 export type PlaceHoldFormState = {
   error?: string;
@@ -17,13 +19,16 @@ export type PlaceHoldFormState = {
  */
 export const placeHold = async (_previous: PlaceHoldFormState, formData: FormData): Promise<PlaceHoldFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  let bookingId: string;
+  const courtId = readFormId(formData, 'courtId');
+  if (courtId === null) return { error: MALFORMED_ID_ERROR };
+
+  let bookingId: number;
 
   try {
-    const result = await placeHoldRequest(session.user.id, {
-      courtId: String(formData.get('courtId') ?? ''),
+    const result = await placeHoldRequest(session.courteUserId, {
+      courtId: courtId,
       startIso: String(formData.get('startIso') ?? ''),
       durationMinutes: Number(formData.get('durationMinutes')),
     });

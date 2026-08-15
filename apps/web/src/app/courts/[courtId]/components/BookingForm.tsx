@@ -31,7 +31,7 @@ const REPEAT_OPTIONS: SelectOption[] = [
 ];
 
 type BookingFormProps = {
-  courtId: string;
+  courtId: number;
   slots: SlotOption[];
   durations: DurationOption[];
   preselectedStartIso: string | null;

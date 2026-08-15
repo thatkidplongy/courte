@@ -24,14 +24,18 @@ const CELL_CLASSES = 'flex-1 px-3 py-2';
  * everyone until geolocation or a place autocomplete lands. Showing a disabled input would
  * imply it is coming; a label states the truth.
  *
- * The shadow is the one place the flat system allows one — the bar genuinely floats over the
- * seam between the night hero and the page below it, and elevation is what says so.
+ * The shadow is the one place the flat system allows one — the bar is a white card sitting on
+ * the night hero, and elevation is what says it is in front rather than part of it.
+ *
+ * `text-foreground` is not decoration: the bar renders inside a section carrying `text-white`,
+ * and a white card inheriting white text is invisible. Setting it here rather than at the call
+ * site keeps the bar legible wherever it is dropped.
  */
 export const HeroSearchBar = ({ sport, dateIso }: HeroSearchBarProps) => (
   <form
     method="GET"
     action="/courts"
-    className="border-border divide-border flex flex-col rounded-md border bg-white p-2 shadow-xl sm:flex-row sm:items-stretch sm:divide-x"
+    className="border-border divide-border text-foreground flex flex-col rounded-md border bg-white p-2 shadow-xl sm:flex-row sm:items-stretch sm:divide-x"
     aria-label="Search courts"
   >
     <ControlGroup label="Sport" className={CELL_CLASSES}>

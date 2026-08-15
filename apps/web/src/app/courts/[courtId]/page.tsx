@@ -11,6 +11,7 @@ import { VenueGallery } from '@/components/molecules/VenueGallery';
 import { DAY_STRIP_LENGTH, SPORT_LABELS } from '@/consts';
 import { isNotFound } from '@/lib/api/client';
 import { fetchVenueSchedule } from '@/lib/api/resources';
+import { parseRouteId } from '@/lib/ids';
 import { cn } from '@/lib/utils';
 import { createSeries } from '@/server-actions/createSeries';
 import { placeHold } from '@/server-actions/placeHold';
@@ -66,7 +67,7 @@ const VenueAmenities = ({ amenities }: { amenities: Amenity[] }) => {
   );
 };
 
-const DayStrip = ({ courtId, dateIso, timezone }: { courtId: string; dateIso: string; timezone: string }) => {
+const DayStrip = ({ courtId, dateIso, timezone }: { courtId: number; dateIso: string; timezone: string }) => {
   const today = DateTime.now().setZone(timezone).startOf('day');
   const days = Array.from({ length: DAY_STRIP_LENGTH }, (_, offset) => today.plus({ days: offset }));
 
@@ -80,6 +81,10 @@ const DayStrip = ({ courtId, dateIso, timezone }: { courtId: string; dateIso: st
           <Link
             key={iso}
             href={`/courts/${courtId}?date=${iso}`}
+            // Next scrolls to the top of the document on navigation, which throws the reader
+            // back past the gallery and the venue header every time they change day. The strip
+            // and the grid it controls are both already on screen — nothing needs to move.
+            scroll={false}
             aria-current={isActive ? 'date' : undefined}
             className={cn(
               'rounded-md border px-3.5 py-2.5 text-center text-[12.5px] font-semibold leading-tight transition',
@@ -97,7 +102,9 @@ const DayStrip = ({ courtId, dateIso, timezone }: { courtId: string; dateIso: st
 };
 
 const CourtPage = async ({ params, searchParams }: PageProps) => {
-  const { courtId } = await params;
+  const routeParams = await params;
+  const courtId = parseRouteId(routeParams.courtId);
+  if (courtId === null) notFound();
   const { date, start } = await searchParams;
 
   const schedule = await fetchVenueSchedule(courtId, date).catch(error => {

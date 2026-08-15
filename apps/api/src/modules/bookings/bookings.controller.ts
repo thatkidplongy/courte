@@ -27,7 +27,7 @@ export class BookingsController {
    */
   @Post('holds')
   placeHold(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Body(validateWith(placeHoldBodySchema)) body: PlaceHoldBody
   ): Promise<PlaceHoldResponse> {
     return this.bookings.placeHold(userId, body);
@@ -35,14 +35,14 @@ export class BookingsController {
 
   @Get('bookings')
   listBookings(
-    @CurrentUserId() userId: string,
+    @CurrentUserId() userId: number,
     @Query(validateWith(listBookingsQuerySchema)) query: ListBookingsQuery
   ): Promise<Paginated<BookingSummary>> {
     return this.bookings.listBookings(userId, query.page, query.limit);
   }
 
   @Get('bookings/:bookingId')
-  getBooking(@CurrentUserId() userId: string, @Param('bookingId') bookingId: string): Promise<BookingSummary> {
+  getBooking(@CurrentUserId() userId: number, @Param('bookingId') bookingId: string): Promise<BookingSummary> {
     return this.bookings.getBookingDetail(userId, parseId(bookingId, 'bookingId'));
   }
 
@@ -52,13 +52,13 @@ export class BookingsController {
    */
   @Post('bookings/:bookingId/confirm')
   @HttpCode(HttpStatus.NO_CONTENT)
-  confirmBooking(@CurrentUserId() userId: string, @Param('bookingId') bookingId: string): Promise<void> {
+  confirmBooking(@CurrentUserId() userId: number, @Param('bookingId') bookingId: string): Promise<void> {
     return this.bookings.confirmBooking(userId, parseId(bookingId, 'bookingId'));
   }
 
   @Post('bookings/:bookingId/cancel')
   @HttpCode(HttpStatus.NO_CONTENT)
-  cancelBooking(@CurrentUserId() userId: string, @Param('bookingId') bookingId: string): Promise<void> {
+  cancelBooking(@CurrentUserId() userId: number, @Param('bookingId') bookingId: string): Promise<void> {
     return this.bookings.cancelBooking(userId, parseId(bookingId, 'bookingId'));
   }
 }

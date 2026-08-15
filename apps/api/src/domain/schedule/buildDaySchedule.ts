@@ -4,14 +4,17 @@ import type { Interval } from '@/domain/availability/types';
 /**
  * The court-by-hour grid behind the venue page, pure.
  *
- * Three states, and the distinction between them is the point: `closed` means the venue is not
- * open then (or the hour has already passed), `booked` means it is open and taken, `open` means
- * you can have it. Collapsing the first two — which a naive "is it in the free list" check does —
- * makes a venue that shuts at 9pm look fully booked all evening, which is a different and much
- * worse claim about someone's business.
+ * Four states, and the distinctions between them are the point. `closed` means the venue is not
+ * open then, `past` means it was open but the hour has gone, `booked` means it is open and taken,
+ * `open` means you can have it. Collapsing any of the three unbookable cases — which a naive
+ * "is it in the free list" check does — makes a venue that shuts at 9pm look fully booked all
+ * evening, which is a different and much worse claim about someone's business.
+ *
+ * `past` is split out from `closed` so the grid can name the reason rather than drawing three
+ * different situations as the same empty box.
  */
 
-export type ScheduleCellState = 'open' | 'booked' | 'closed';
+export type ScheduleCellState = 'open' | 'booked' | 'closed' | 'past';
 
 export type ScheduleCell = {
   /** Epoch ms of the hour this cell represents. */
@@ -20,16 +23,16 @@ export type ScheduleCell = {
 };
 
 export type ScheduleCourt = {
-  courtId: string;
+  courtId: number;
   cells: ScheduleCell[];
 };
 
 type ScheduleInput = {
-  courts: Array<{ id: string; minDurationMinutes: number }>;
+  courts: Array<{ id: number; minDurationMinutes: number }>;
   /** When the court is open, ignoring bookings. */
-  openByCourt: Map<string, Interval[]>;
+  openByCourt: Map<number, Interval[]>;
   /** Open minus everything already reserved. */
-  freeByCourt: Map<string, Interval[]>;
+  freeByCourt: Map<number, Interval[]>;
   /** Epoch ms of each hour column, ascending. */
   hourStarts: number[];
   /** Usually now: an hour that has begun cannot be booked, whatever the calendar says. */
@@ -53,8 +56,10 @@ const classifyCell = ({
   notBefore: number;
 }): ScheduleCellState => {
   const hourEnd = hourStart + MINUTES_PER_HOUR * MS_PER_MINUTE;
+  // Opening hours are checked first, so an hour this court was never open for reads as closed
+  // even once it is also in the past — that is the more specific fact about this court.
   if (!covers(open, hourStart, hourEnd)) return 'closed';
-  if (hourStart < notBefore) return 'closed';
+  if (hourStart < notBefore) return 'past';
 
   // A bookable hour is one where the court's shortest booking still fits, not merely one where
   // the hour itself is free — a 90-minute-minimum court with a 60-minute gap has nothing to sell.

@@ -38,7 +38,7 @@ const SignOutButton = () => (
  */
 export const SiteHeader = async () => {
   const session = await auth();
-  const memberships = session?.user ? await fetchVenueMemberships(session.user.id) : [];
+  const memberships = session?.courteUserId ? await fetchVenueMemberships(session.courteUserId) : [];
   const managedVenueId = memberships[0]?.venueId;
 
   return (
@@ -54,7 +54,7 @@ export const SiteHeader = async () => {
           <Link href="/courts" className={cn(NAV_LINK_CLASSES, 'hidden lg:inline')}>
             Find a court
           </Link>
-          {session?.user ? (
+          {session?.courteUserId ? (
             <>
               <Link href="/bookings" className={cn(NAV_LINK_CLASSES, 'hidden lg:inline')}>
                 My bookings

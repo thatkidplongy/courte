@@ -19,18 +19,25 @@ import { isSport } from '@/lib/courtFilters';
 import { formatWholePesos } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
+/**
+ * The mockup's fourth badge is "Secure payments". We do not take payment online — a booking is
+ * settled at the desk — so the slot carries the strongest claim that is actually true instead.
+ */
 const TRUST_BADGES = [
   { icon: ClockIcon, label: 'Real-time availability' },
   { icon: BoltIcon, label: 'Instant confirmation' },
+  { icon: CheckIcon, label: 'Free cancellation' },
   { icon: ShieldIcon, label: 'Trusted venues' },
-  { icon: CheckIcon, label: 'Free cancellation window' },
 ] as const;
 
 const TrustBadges = () => (
-  <ul className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-white/15 pt-7">
+  <ul className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-3 border-t border-white/15 pt-6">
     {TRUST_BADGES.map(badge => (
-      <li key={badge.label} className="flex items-center gap-2.5 text-[12.5px] font-medium text-white/80">
-        <badge.icon className="text-primary h-4 w-4" />
+      <li
+        key={badge.label}
+        className="flex items-center gap-2 whitespace-nowrap text-[12.5px] font-medium text-white/80"
+      >
+        <badge.icon className="text-primary h-4 w-4 shrink-0" />
         {badge.label}
       </li>
     ))}
@@ -39,13 +46,23 @@ const TrustBadges = () => (
 
 type HeroProps = {
   kicker: string;
+  sport: Sport;
+  dateIso: string;
 };
 
-const Hero = ({ kicker }: HeroProps) => (
-  <section className="bg-night relative overflow-hidden text-white">
-    <HeroBackdrop />
-    <div className="relative mx-auto grid max-w-6xl px-6 pb-28 pt-16 md:grid-cols-2">
-      <div>
+/**
+ * One column of copy with the search bar inside it, and the artwork holding the other column —
+ * the mockup's composition. The bar belongs in the hero rather than straddling the seam below
+ * it: it is the hero's call to action, and the badges are what close the block underneath.
+ *
+ * The right column is where the mockup places a photograph. There is no media pipeline and no
+ * licensed image, so the panel carries the vector artwork instead — see `HeroBackdrop` for why
+ * it is drawn rather than shot.
+ */
+const Hero = ({ kicker, sport, dateIso }: HeroProps) => (
+  <section className="bg-night text-white">
+    <div className="mx-auto grid max-w-6xl gap-8 px-5 pb-14 pt-14 sm:px-6 md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] md:items-center md:gap-10 md:pb-16">
+      <div className="min-w-0">
         <p className="text-primary text-[10.5px] font-semibold uppercase tracking-[0.18em]">{kicker}</p>
         <h1 className="mt-5 text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] sm:text-6xl">
           Book your court.
@@ -55,7 +72,16 @@ const Hero = ({ kicker }: HeroProps) => (
         <p className="mt-5 max-w-md text-[16.5px] leading-relaxed text-white/70">
           Fast, easy and reliable court booking for the sports you love — every venue in {SEARCH_DEFAULTS.label}.
         </p>
+
+        <div className="mt-9">
+          <HeroSearchBar sport={sport} dateIso={dateIso} />
+        </div>
+
         <TrustBadges />
+      </div>
+
+      <div className="relative hidden min-h-[420px] self-stretch md:block">
+        <HeroBackdrop />
       </div>
     </div>
   </section>
@@ -203,27 +229,27 @@ const LandingPage = async ({ searchParams }: PageProps) => {
   // The phone home screen opens with the reader's next game, so a returning player sees where
   // they are playing before they see anything being sold. Signed-out readers skip the fetch.
   const session = await auth();
-  const nextBooking = session?.user ? findNextBooking((await fetchBookings(session.user.id)).data, Date.now()) : null;
+  const nextBooking = session?.courteUserId
+    ? findNextBooking((await fetchBookings(session.courteUserId)).data, Date.now())
+    : null;
 
   return (
     <main>
       <Hero
         kicker={`${SEARCH_DEFAULTS.label} · ${total} ${SPORT_LABELS[sport].toLowerCase()} ${total === 1 ? 'court' : 'courts'}`}
+        sport={sport}
+        dateIso={dateIso}
       />
 
-      {/* `relative` is load-bearing: the hero's own content sits in a positioned box, so a
-          static sibling pulled up by the negative margin would slide underneath it. */}
+      {/* Straddles the seam between the night hero and the page, which is the one thing on the
+          landing that genuinely floats — a returning player's next game outranks the marketing. */}
       {nextBooking ? (
-        <div className="relative z-10 mx-auto -mt-10 max-w-6xl px-5 sm:px-6">
+        <div className="relative z-10 mx-auto -mt-9 max-w-6xl px-5 sm:px-6">
           <UpNextCard booking={nextBooking} className="ring-background ring-4" />
         </div>
       ) : null}
 
-      <div className={cn('relative z-10 mx-auto max-w-6xl px-5 sm:px-6', nextBooking ? 'mt-5' : '-mt-14')}>
-        <HeroSearchBar sport={sport} dateIso={dateIso} />
-      </div>
-
-      <div className="mx-auto max-w-6xl px-6">
+      <div className={cn('mx-auto max-w-6xl px-5 sm:px-6', nextBooking && 'mt-4')}>
         <section className="border-ink mt-16 border-t-2 pt-12">
           <SectionHeading
             title="Play any sport, anywhere"

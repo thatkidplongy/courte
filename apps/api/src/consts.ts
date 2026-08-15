@@ -1,5 +1,5 @@
 /**
- * Postgres raises this SQLSTATE when the reservations exclusion constraint rejects an
+ * Postgres raises this SQLSTATE when the "Reservation" exclusion constraint rejects an
  * overlapping range. It is the sole signal that a slot was taken between render and submit —
  * see docs/adr/0002.
  */

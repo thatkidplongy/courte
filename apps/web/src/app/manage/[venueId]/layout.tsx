@@ -6,6 +6,7 @@ import { auth } from '@/auth';
 import { VenueSidebar } from '@/components/organisms/VenueSidebar';
 import { isNotFound } from '@/lib/api/client';
 import { fetchVenueDashboard } from '@/lib/api/resources';
+import { parseRouteId } from '@/lib/ids';
 import { buildVenueNav } from '@/lib/venueNav';
 
 type LayoutProps = {
@@ -21,11 +22,15 @@ type LayoutProps = {
  */
 const ManageLayout = async ({ children, params }: LayoutProps) => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
 
-  const { venueId } = await params;
+  const routeParams = await params;
 
-  const dashboard = await fetchVenueDashboard(session.user.id, venueId).catch(error => {
+  const venueId = parseRouteId(routeParams.venueId);
+
+  if (venueId === null) notFound();
+
+  const dashboard = await fetchVenueDashboard(session.courteUserId, venueId).catch(error => {
     if (isNotFound(error)) notFound();
     throw error;
   });

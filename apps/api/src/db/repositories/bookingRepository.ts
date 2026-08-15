@@ -5,10 +5,10 @@ import type { BookingSource, BookingStatus, PaymentState } from '@courte/contrac
 import { query } from '@/db/client';
 
 type BookingRow = {
-  id: string;
-  series_id: string | null;
-  user_id: string;
-  venue_id: string;
+  id: number;
+  series_id: number | null;
+  user_id: number;
+  venue_id: number;
   status: BookingStatus;
   source: BookingSource;
   total_cents: number;
@@ -19,10 +19,10 @@ type BookingRow = {
 };
 
 export type Booking = {
-  id: string;
-  seriesId: string | null;
-  userId: string;
-  venueId: string;
+  id: number;
+  seriesId: number | null;
+  userId: number;
+  venueId: number;
   status: BookingStatus;
   source: BookingSource;
   totalCents: number;
@@ -58,24 +58,24 @@ const BOOKING_COLUMNS = `
 `;
 
 const BOOKING_FROM = `
-  FROM bookings b
-  JOIN booking_payment_state ps ON ps.booking_id = b.id
+  FROM "Booking" b
+  JOIN "BookingPaymentState" ps ON ps.booking_id = b.id
 `;
 
 const BOOKING_SELECT = `SELECT ${BOOKING_COLUMNS} ${BOOKING_FROM}`;
 
 export type InsertBookingParams = {
-  userId: string;
-  venueId: string;
+  userId: number;
+  venueId: number;
   source: BookingSource;
   totalCents: number;
   rateSnapshot: Record<string, unknown>;
 };
 
-export const insertPendingBooking = async (client: PoolClient, params: InsertBookingParams): Promise<string> => {
-  const result = await client.query<{ id: string }>(
+export const insertPendingBooking = async (client: PoolClient, params: InsertBookingParams): Promise<number> => {
+  const result = await client.query<{ id: number }>(
     `
-    INSERT INTO bookings (user_id, venue_id, status, source, total_cents, rate_snapshot)
+    INSERT INTO "Booking" (user_id, venue_id, status, source, total_cents, rate_snapshot)
     VALUES ($1, $2, 'pending', $3, $4, $5)
     RETURNING id
     `,
@@ -92,14 +92,14 @@ export const insertPendingBooking = async (client: PoolClient, params: InsertBoo
  * else's booking ID simply finds nothing, and the caller returns the same 404 a fabricated
  * ID would get.
  */
-export const findBookingForUser = async (bookingId: string, userId: string): Promise<Booking | null> => {
+export const findBookingForUser = async (bookingId: number, userId: number): Promise<Booking | null> => {
   const rows = await query<BookingRow>(`${BOOKING_SELECT} WHERE b.id = $1 AND b.user_id = $2`, [bookingId, userId]);
   const row = rows[0];
   return row ? toBooking(row) : null;
 };
 
 export const findBookingsForUser = async (
-  userId: string,
+  userId: number,
   page: number,
   limit: number
 ): Promise<{ bookings: Booking[]; total: number }> => {
@@ -160,16 +160,16 @@ const BOOKING_DETAIL_COLUMNS = `
 `;
 
 const BOOKING_DETAIL_FROM = `
-  FROM bookings b
-  JOIN booking_payment_state ps ON ps.booking_id = b.id
-  JOIN venues v ON v.id = b.venue_id
-  JOIN reservations r ON r.booking_id = b.id
-  JOIN courts c ON c.id = r.court_id
+  FROM "Booking" b
+  JOIN "BookingPaymentState" ps ON ps.booking_id = b.id
+  JOIN "Venue" v ON v.id = b.venue_id
+  JOIN "Reservation" r ON r.booking_id = b.id
+  JOIN "Court" c ON c.id = r.court_id
 `;
 
 const BOOKING_DETAIL_SELECT = `SELECT ${BOOKING_DETAIL_COLUMNS} ${BOOKING_DETAIL_FROM}`;
 
-export const findBookingDetailForUser = async (bookingId: string, userId: string): Promise<BookingDetail | null> => {
+export const findBookingDetailForUser = async (bookingId: number, userId: number): Promise<BookingDetail | null> => {
   const rows = await query<BookingDetailRow>(
     `${BOOKING_DETAIL_SELECT}
      WHERE b.id = $1 AND b.user_id = $2
@@ -180,7 +180,7 @@ export const findBookingDetailForUser = async (bookingId: string, userId: string
   return row ? toBookingDetail(row) : null;
 };
 
-export const findBookingDetailsForUser = async (userId: string, limit: number): Promise<BookingDetail[]> => {
+export const findBookingDetailsForUser = async (userId: number, limit: number): Promise<BookingDetail[]> => {
   const rows = await query<BookingDetailRow>(
     `${BOOKING_DETAIL_SELECT}
      WHERE b.user_id = $1 AND r.state = 'active'
@@ -198,7 +198,7 @@ export const findBookingDetailsForUser = async (userId: string, limit: number): 
  * both the page and its total.
  */
 export const findBookingDetailPageForUser = async (
-  userId: string,
+  userId: number,
   page: number,
   limit: number
 ): Promise<{ bookings: BookingDetail[]; total: number }> => {
@@ -222,12 +222,12 @@ export const findBookingDetailPageForUser = async (
 
 export const updateBookingStatus = async (
   client: PoolClient,
-  bookingId: string,
+  bookingId: number,
   status: BookingStatus
 ): Promise<void> => {
   await client.query(
     `
-    UPDATE bookings
+    UPDATE "Booking"
     SET status = $2::booking_status,
         cancelled_at = CASE WHEN $2::booking_status = 'cancelled' THEN now() ELSE cancelled_at END
     WHERE id = $1

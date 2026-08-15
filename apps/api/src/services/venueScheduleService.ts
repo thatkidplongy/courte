@@ -57,7 +57,7 @@ const toOpeningLabel = (openIntervals: Interval[], timezone: string): string | n
  * choosing between is that venue's courts at that hour — so this resolves the venue from the
  * court and returns the whole thing.
  */
-export const getVenueSchedule = async (courtId: string, date: string | undefined): Promise<VenueScheduleResponse> => {
+export const getVenueSchedule = async (courtId: number, date: string | undefined): Promise<VenueScheduleResponse> => {
   const anchorCourt = await findCourtById(courtId);
   if (!anchorCourt) throw new NotFoundError('Court');
 
@@ -97,7 +97,7 @@ export const getVenueSchedule = async (courtId: string, date: string | undefined
 
   const grid = buildDaySchedule({ courts, openByCourt, freeByCourt, hourStarts, notBefore: Date.now() });
   const gridByCourt = new Map(grid.map(row => [row.courtId, row.cells]));
-  const rulesByCourt = new Map<string, PriceRule[]>();
+  const rulesByCourt = new Map<number, PriceRule[]>();
   rules.forEach(rule => rulesByCourt.set(rule.courtId, [...(rulesByCourt.get(rule.courtId) ?? []), rule]));
 
   const scheduleCourts: VenueScheduleCourt[] = courts.map(court => ({

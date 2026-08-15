@@ -1,12 +1,10 @@
 import { z } from 'zod';
 
+import { idSchema } from '@courte/contract';
+
 import { DomainError, ValidationError } from '@/domain/errors';
 
-/**
- * Postgres's uuid type accepts any well-formed hex uuid regardless of RFC 4122 version bits;
- * Zod v4's z.uuid() does not. z.guid() matches what the database actually accepts.
- */
-export const idSchema = z.guid();
+export { idSchema };
 
 /** Field-level detail when there is any — 'Invalid input' alone helps nobody. */
 export const formatDomainError = (error: DomainError): string => {
@@ -32,13 +30,18 @@ export const parseInput = <Schema extends z.ZodType>(schema: Schema, input: unkn
 };
 
 /**
- * Path parameters are client input too. Without this a malformed id reaches Postgres and
- * comes back as a driver error, which the filter can only turn into a generic 500 — a 400
- * naming the parameter is both truthful and more useful.
+ * Path parameters are client input too, and they arrive as strings whatever they identify.
+ * This is the one place a URL segment becomes an id: it coerces and validates in a single
+ * step, so nothing downstream has to wonder whether it holds `'3'` or `3`.
+ *
+ * Without it a malformed id reaches Postgres and comes back as a driver error, which the
+ * filter can only turn into a generic 500 — a 400 naming the parameter is both truthful and
+ * more useful. That matters more with integer keys than it did with uuids: `/courts/abc` is
+ * now a far likelier typo than a malformed uuid ever was.
  */
-export const parseId = (value: string, field: string): string => {
+export const parseId = (value: string, field: string): number => {
   const result = idSchema.safeParse(value);
   if (result.success) return result.data;
 
-  throw new ValidationError('Invalid input', [{ field, message: 'must be a uuid' }]);
+  throw new ValidationError('Invalid input', [{ field, message: 'must be a positive whole number' }]);
 };

@@ -26,14 +26,14 @@ export const joinWaitlistBodySchema = z
 export type JoinWaitlistBody = z.infer<typeof joinWaitlistBodySchema>;
 
 export type WaitlistEntry = {
-  id: string;
+  id: number;
   state: WaitlistState;
   desiredStartIso: string;
   desiredEndIso: string;
   courtName: string;
   venueName: string;
   venueTimezone: string;
-  offeredCourtId: string | null;
+  offeredCourtId: number | null;
   offeredStartIso: string | null;
   claimExpiresAtIso: string | null;
 };

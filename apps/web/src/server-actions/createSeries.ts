@@ -5,8 +5,10 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { MALFORMED_ID_ERROR } from '@/consts';
 import { ApiError } from '@/lib/api/client';
 import { createSeries as createSeriesRequest } from '@/lib/api/resources';
+import { readFormId } from '@/lib/ids';
 
 export type CreateSeriesFormState = {
   error?: string;
@@ -27,11 +29,14 @@ export const createSeries = async (
   formData: FormData
 ): Promise<CreateSeriesFormState> => {
   const session = await auth();
-  if (!session?.user) redirect('/');
+  if (!session?.courteUserId) redirect('/');
+
+  const courtId = readFormId(formData, 'courtId');
+  if (courtId === null) return { error: MALFORMED_ID_ERROR };
 
   try {
-    const result = await createSeriesRequest(session.user.id, {
-      courtId: String(formData.get('courtId') ?? ''),
+    const result = await createSeriesRequest(session.courteUserId, {
+      courtId: courtId,
       startIso: String(formData.get('startIso') ?? ''),
       durationMinutes: Number(formData.get('durationMinutes')),
       weeks: Number(formData.get('weeks')),

@@ -7,16 +7,16 @@ import { isOverlapViolation, isUniqueViolation } from '@/db/errors';
 import type { SeriesTemplate } from '@/domain/recurrence/materialiseSeries';
 
 type SeriesRow = {
-  id: string;
-  created_by: string;
-  venue_id: string;
+  id: number;
+  created_by: number;
+  venue_id: number;
   rrule: string;
   timezone: string;
   dtstart: string;
   materialised_until: string;
   duration_minutes: number;
   source: BookingSource;
-  court_ids: string[];
+  court_ids: number[];
   buffer_minutes: number;
 };
 
@@ -39,27 +39,27 @@ const SERIES_SELECT = `
          s.duration_minutes, s.source,
          array_agg(sc.court_id ORDER BY sc.court_id) AS court_ids,
          max(c.buffer_minutes)::int AS buffer_minutes
-  FROM booking_series s
-  JOIN booking_series_courts sc ON sc.series_id = s.id
-  JOIN courts c ON c.id = sc.court_id
+  FROM "BookingSeries" s
+  JOIN "BookingSeriesCourt" sc ON sc.series_id = s.id
+  JOIN "Court" c ON c.id = sc.court_id
 `;
 
 export type InsertSeriesParams = {
-  createdBy: string;
-  venueId: string;
+  createdBy: number;
+  venueId: number;
   rrule: string;
   timezone: string;
   dtstart: Date;
   durationMinutes: number;
   source: BookingSource;
-  courtIds: string[];
+  courtIds: number[];
 };
 
-export const insertSeries = async (params: InsertSeriesParams): Promise<string> => {
+export const insertSeries = async (params: InsertSeriesParams): Promise<number> => {
   return withTransaction(async client => {
-    const result = await client.query<{ id: string }>(
+    const result = await client.query<{ id: number }>(
       `
-      INSERT INTO booking_series (created_by, venue_id, rrule, timezone, dtstart, materialised_until,
+      INSERT INTO "BookingSeries" (created_by, venue_id, rrule, timezone, dtstart, materialised_until,
                                   duration_minutes, source)
       VALUES ($1, $2, $3, $4, $5, $5, $6, $7)
       RETURNING id
@@ -79,17 +79,14 @@ export const insertSeries = async (params: InsertSeriesParams): Promise<string> 
     if (!seriesId) throw new Error('series insert returned no id');
 
     for (const courtId of params.courtIds) {
-      await client.query('INSERT INTO booking_series_courts (series_id, court_id) VALUES ($1, $2)', [
-        seriesId,
-        courtId,
-      ]);
+      await client.query('INSERT INTO "BookingSeriesCourt" (series_id, court_id) VALUES ($1, $2)', [seriesId, courtId]);
     }
 
     return seriesId;
   });
 };
 
-export const findSeriesById = async (seriesId: string): Promise<SeriesTemplate | null> => {
+export const findSeriesById = async (seriesId: number): Promise<SeriesTemplate | null> => {
   const rows = await query<SeriesRow>(`${SERIES_SELECT} WHERE s.id = $1 GROUP BY s.id`, [seriesId]);
   const row = rows[0];
   return row ? toTemplate(row) : null;
@@ -104,9 +101,9 @@ export const findSeriesNeedingMaterialisation = async (before: Date, limit: numb
   return rows.map(toTemplate);
 };
 
-export const advanceSeriesHorizon = async (seriesId: string, until: Date): Promise<void> => {
+export const advanceSeriesHorizon = async (seriesId: number, until: Date): Promise<void> => {
   // GREATEST guards a stale job re-run from dragging the horizon backwards.
-  await query('UPDATE booking_series SET materialised_until = GREATEST(materialised_until, $2) WHERE id = $1', [
+  await query('UPDATE "BookingSeries" SET materialised_until = GREATEST(materialised_until, $2) WHERE id = $1', [
     seriesId,
     until.toISOString(),
   ]);
@@ -131,9 +128,9 @@ export const insertSeriesOccurrence = async (
 
   try {
     await withTransaction(async (client: PoolClient) => {
-      const booking = await client.query<{ id: string }>(
+      const booking = await client.query<{ id: number }>(
         `
-        INSERT INTO bookings (series_id, occurrence_start, user_id, venue_id, status, source,
+        INSERT INTO "Booking" (series_id, occurrence_start, user_id, venue_id, status, source,
                               total_cents, rate_snapshot)
         VALUES ($1, $2, $3, $4, 'confirmed', $5, $6, $7)
         RETURNING id
@@ -155,7 +152,7 @@ export const insertSeriesOccurrence = async (
       for (const courtId of params.series.courtIds) {
         await client.query(
           `
-          INSERT INTO reservations (court_id, booking_id, kind, during, play_during)
+          INSERT INTO "Reservation" (court_id, booking_id, kind, during, play_during)
           VALUES ($1, $2, 'booking', tstzrange($3, $4), tstzrange($5, $6))
           `,
           [
