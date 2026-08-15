@@ -14,14 +14,24 @@ export const PG_FOREIGN_KEY_VIOLATION = '23503';
  */
 export const MONDAY_INDEX = 0;
 export const DAYS_PER_WEEK = 7;
+export const MINUTES_PER_HOUR = 60;
 export const MINUTES_PER_DAY = 1440;
 export const MINUTES_PER_WEEK = MINUTES_PER_DAY * DAYS_PER_WEEK;
+export const MS_PER_MINUTE = 60_000;
+export const HOURS_PER_DAY = 24;
 
 /** How many bookable starts a search card shows before "all times". */
 export const SLOT_CHIPS_PER_CARD = 3;
 
-/** Upper bound on the start chips a single court page lists for one day. */
-export const MAX_SLOTS_PER_DAY = 32;
+/**
+ * Upper bound on the start chips a single court page lists for one day. The cap is per day,
+ * not per court, so it has to clear the widest case: a court open around the clock on the
+ * finest grid anyone configures. Set too low it truncates in silence — at 32 a court open
+ * 06:00 to midnight on a 30-minute grid lost its last two starts with nothing on screen to
+ * say so, which reads as "closed early" rather than "list trimmed".
+ */
+export const FINEST_INCREMENT_MINUTES = 15;
+export const MAX_SLOTS_PER_DAY = MINUTES_PER_DAY / FINEST_INCREMENT_MINUTES;
 
 export const API_VERSION_PREFIX = 'v1';
 

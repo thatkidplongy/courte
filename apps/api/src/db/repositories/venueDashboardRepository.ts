@@ -107,6 +107,46 @@ export const getVenueStats = async (
   };
 };
 
+/**
+ * Bookings per venue-local hour of day. Grouped in Postgres rather than in JS because the
+ * alternative is shipping every reservation in the window across the wire to count them, and
+ * the DST-correct local hour is something the database already knows how to compute.
+ *
+ * Always returns 24 rows: an hour with no bookings is a zero, not a missing key, so the chart
+ * never has to guess whether a gap means "closed" or "no data".
+ */
+export const getVenueUtilisationByHour = async (
+  venueId: string,
+  from: Date,
+  to: Date,
+  timezone: string
+): Promise<Array<{ hour: number; bookings: number }>> => {
+  const rows = await query<{ hour: string; bookings: string }>(
+    `
+    WITH hours AS (SELECT generate_series(0, 23) AS hour)
+    SELECT
+      hours.hour,
+      COALESCE(counted.bookings, 0) AS bookings
+    FROM hours
+    LEFT JOIN (
+      SELECT
+        EXTRACT(HOUR FROM lower(r.play_during) AT TIME ZONE $4)::int AS hour,
+        count(DISTINCT b.id) AS bookings
+      FROM bookings b
+      JOIN reservations r ON r.booking_id = b.id AND r.state = 'active'
+      WHERE b.venue_id = $1
+        AND b.status IN ('pending','confirmed','completed')
+        AND r.play_during && tstzrange($2, $3)
+      GROUP BY 1
+    ) counted ON counted.hour = hours.hour
+    ORDER BY hours.hour
+    `,
+    [venueId, from.toISOString(), to.toISOString(), timezone]
+  );
+
+  return rows.map(row => ({ hour: Number(row.hour), bookings: Number(row.bookings) }));
+};
+
 export type WalkInInsert = {
   venueId: string;
   courtId: string;

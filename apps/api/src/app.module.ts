@@ -3,6 +3,7 @@ import { APP_FILTER } from '@nestjs/core';
 
 import { DomainErrorFilter } from '@/common/domainError.filter';
 import { RequestContextMiddleware } from '@/common/requestContext';
+import { AmenitiesController } from '@/modules/amenities/amenities.controller';
 import { BookingsModule } from '@/modules/bookings/bookings.module';
 import { CourtsModule } from '@/modules/courts/courts.module';
 import { HealthController } from '@/modules/health/health.controller';
@@ -14,7 +15,7 @@ import { WaitlistModule } from '@/modules/waitlist/waitlist.module';
 
 @Module({
   imports: [CourtsModule, BookingsModule, SeriesModule, WaitlistModule, VenuesModule, SchedulerModule],
-  controllers: [HealthController, IdentitiesController],
+  controllers: [HealthController, IdentitiesController, AmenitiesController],
   providers: [
     // Registered last in the chain by construction: a global filter sees errors thrown by
     // every guard, pipe, controller and service beneath it.

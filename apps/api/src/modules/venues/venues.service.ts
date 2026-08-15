@@ -16,6 +16,7 @@ import { findPriceRulesForCourts } from '@/db/repositories/priceRuleRepository';
 import {
   findVenueBookings,
   getVenueStats,
+  getVenueUtilisationByHour,
   insertBlackout,
   insertVenuePayment,
   insertWalkInBooking,
@@ -27,6 +28,9 @@ import { NotFoundError, SlotUnavailableError, ValidationError } from '@/domain/e
 import { resolveQuote } from '@/domain/pricing/resolveQuote';
 
 const DASHBOARD_WINDOW_HOURS = 24;
+
+/** How far back the utilisation chart looks. A month smooths out a single quiet Tuesday. */
+const UTILISATION_WINDOW_DAYS = 30;
 
 /**
  * Desk operations. Every method re-checks venue membership for itself through
@@ -57,7 +61,7 @@ export class VenuesService {
     const to = toIso ? new Date(toIso) : anchor.plus({ hours: DASHBOARD_WINDOW_HOURS }).toJSDate();
     const dayStart = anchor.startOf('day');
 
-    const [bookings, stats, courts] = await Promise.all([
+    const [bookings, stats, courts, utilisationByHour] = await Promise.all([
       findVenueBookings(venueId, from, to),
       getVenueStats(
         venueId,
@@ -67,6 +71,13 @@ export class VenuesService {
         anchor.startOf('month').toJSDate()
       ),
       findCourtsByVenue(venueId),
+      // A month back, so the shape of a week is visible without one quiet day distorting it.
+      getVenueUtilisationByHour(
+        venueId,
+        dayStart.minus({ days: UTILISATION_WINDOW_DAYS }).toJSDate(),
+        dayStart.plus({ days: 1 }).toJSDate(),
+        venue.timezone
+      ),
     ]);
 
     return {
@@ -76,6 +87,7 @@ export class VenuesService {
       stats,
       bookings: bookings.map(booking => this.toBookingRow(booking)),
       courts: courts.map(court => ({ id: court.id, name: court.name })),
+      utilisationByHour,
     };
   }
 

@@ -5,17 +5,17 @@ import {
   type CourtSearchItem,
   type Paginated,
   type SearchCourtsQuery,
+  type VenueScheduleResponse,
 } from '@courte/contract';
 import { DateTime } from 'luxon';
 
 import { MAX_SLOTS_PER_DAY, SLOT_CHIPS_PER_CARD } from '@/consts';
 import { findCourtById, searchCourtsByProximity, type CourtSearchResult } from '@/db/repositories/courtRepository';
-import { findPriceRulesForCourts } from '@/db/repositories/priceRuleRepository';
 import { findVenueTimezones } from '@/db/repositories/venueRepository';
 import { listStartTimes } from '@/domain/availability/listStartTimes';
 import { NotFoundError } from '@/domain/errors';
-import type { PriceRule } from '@/domain/pricing/resolveQuote';
 import { getAvailabilityForCourts } from '@/services/availabilityService';
+import { getVenueSchedule } from '@/services/venueScheduleService';
 
 /**
  * Services hold orchestration and know nothing about HTTP. Nothing in this file mentions a
@@ -31,6 +31,11 @@ export class CourtsService {
 
     const { courts, total } = await searchCourtsByProximity({
       sport: query.sport,
+      surface: query.surface,
+      amenitySlugs: query.amenities,
+      minRatePerHourCents: query.minRatePerHourCents,
+      maxRatePerHourCents: query.maxRatePerHourCents,
+      sort: query.sort,
       longitude: query.longitude,
       latitude: query.latitude,
       radiusMetres: query.radiusMetres,
@@ -38,17 +43,14 @@ export class CourtsService {
       limit: query.limit,
     });
 
-    // Two bulk queries for the whole page, never one per card — see the N+1 rule.
-    const [availability, priceRules] = await Promise.all([
-      getAvailabilityForCourts(courts, range),
-      findPriceRulesForCourts(courts.map(court => court.id)),
-    ]);
+    // One bulk query for the whole page, never one per card — see the N+1 rule. The cheapest
+    // public rate already came back with the search, since the query filters and sorts on it.
+    const availability = await getAvailabilityForCourts(courts, range);
 
     const now = Date.now();
     const data = courts.map(court =>
       this.toSearchItem({
         court,
-        priceRules,
         freeIntervals: availability.get(court.id)?.free ?? [],
         notBefore: now,
       })
@@ -60,6 +62,10 @@ export class CourtsService {
       page: query.page,
       totalPages: Math.max(1, Math.ceil(total / query.limit)),
     };
+  }
+
+  getVenueSchedule(courtId: string, date: string | undefined): Promise<VenueScheduleResponse> {
+    return getVenueSchedule(courtId, date);
   }
 
   async getAvailability(courtId: string, date: string | undefined): Promise<CourtAvailabilityResponse> {
@@ -85,7 +91,7 @@ export class CourtsService {
       id: court.id,
       name: court.name,
       sport: court.sport,
-      isIndoor: court.isIndoor,
+      surface: court.surface,
       venueId: court.venueId,
       venueTimezone: timezone,
       minDurationMinutes: court.minDurationMinutes,
@@ -110,12 +116,10 @@ export class CourtsService {
 
   private toSearchItem({
     court,
-    priceRules,
     freeIntervals,
     notBefore,
   }: {
     court: CourtSearchResult;
-    priceRules: PriceRule[];
     freeIntervals: Array<{ start: number; end: number }>;
     notBefore: number;
   }): CourtSearchItem {
@@ -131,23 +135,22 @@ export class CourtsService {
       id: court.id,
       name: court.name,
       sport: court.sport,
-      isIndoor: court.isIndoor,
+      surface: court.surface,
       venueId: court.venueId,
       venueName: court.venueName,
+      venueAddress: court.venueAddress,
       venueTimezone: court.venueTimezone,
+      venueCourtCount: court.venueCourtCount,
+      venueAmenitySlugs: court.venueAmenitySlugs,
+      venuePhoto: court.venuePhoto,
+      latitude: court.latitude,
+      longitude: court.longitude,
       distanceMetres: court.distanceMetres,
       minDurationMinutes: court.minDurationMinutes,
       maxDurationMinutes: court.maxDurationMinutes,
       incrementMinutes: court.incrementMinutes,
-      fromRatePerHourCents: this.cheapestPublicRate(priceRules, court.id),
+      fromRatePerHourCents: court.fromRatePerHourCents,
       slotStartIsos: slotStarts.map(start => new Date(start).toISOString()),
     };
-  }
-
-  /** The "from ₱X/hr" figure: cheapest rule a non-member can actually book. */
-  private cheapestPublicRate(rules: PriceRule[], courtId: string): number | null {
-    const rates = rules.filter(rule => rule.courtId === courtId && !rule.memberOnly);
-    if (rates.length === 0) return null;
-    return Math.min(...rates.map(rule => rule.ratePerHourCents));
   }
 }

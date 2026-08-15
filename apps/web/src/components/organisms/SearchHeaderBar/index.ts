@@ -1,0 +1,1 @@
+export { SearchHeaderBar } from './SearchHeaderBar';

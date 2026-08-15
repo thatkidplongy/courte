@@ -2,7 +2,9 @@
 
 import { useActionState, useEffect, useState } from 'react';
 
-import { ClockIcon } from '@/components/icons';
+import { ClockIcon } from '@/components/atoms/Icon';
+import { Notice } from '@/components/atoms/Notice';
+import { Button } from '@/components/shadcn/ui/button';
 import type { ConfirmFormState } from '@/server-actions/confirmBooking';
 
 type ConfirmPanelProps = {
@@ -18,11 +20,7 @@ const formatRemaining = (ms: number): string => {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 };
 
-const HoldLapsedState = () => (
-  <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-    Your hold has expired — head back and pick a fresh slot.
-  </p>
-);
+const HoldLapsedState = () => <Notice tone="error">Your hold has expired — head back and pick a fresh slot.</Notice>;
 
 export const ConfirmPanel = ({ bookingId, expiresAtIso, action }: ConfirmPanelProps) => {
   const [state, formAction, isPending] = useActionState(action, {});
@@ -38,17 +36,17 @@ export const ConfirmPanel = ({ bookingId, expiresAtIso, action }: ConfirmPanelPr
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="bookingId" value={bookingId} />
-      <p className="bg-court-50 text-court-800 flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-medium">
+      <p className="bg-accent text-accent-foreground flex w-fit items-center gap-2 rounded-md px-3.5 py-2 text-[13px] font-semibold">
         <ClockIcon className="h-4 w-4" />
-        Slot held for <span className="font-mono text-base font-bold tabular-nums">{formatRemaining(remainingMs)}</span>
+        Slot held for <span className="text-base font-extrabold tabular-nums">{formatRemaining(remainingMs)}</span>
       </p>
-      {state.error ? (
-        <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700">{state.error}</p>
-      ) : null}
-      <button type="submit" disabled={isPending} className="btn-primary w-full py-3 text-base">
+      {state.error ? <Notice tone="error">{state.error}</Notice> : null}
+      {/* Flush left with the amount pushed right — the design's rule for a button wider than
+          its label, and it puts the number being committed to at the edge of the click. */}
+      <Button type="submit" size="lg" disabled={isPending} className="w-full justify-start text-[15px]">
         {isPending ? 'Confirming…' : 'Confirm booking'}
-      </button>
-      <p className="text-center text-xs text-neutral-400">Pay at the venue — cash, GCash or Maya.</p>
+      </Button>
+      <p className="text-muted-foreground text-xs">Pay at the venue — cash, GCash or Maya.</p>
     </form>
   );
 };

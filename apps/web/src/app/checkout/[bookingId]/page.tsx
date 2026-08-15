@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
+import { FieldLabel } from '@/components/atoms/FieldLabel';
 import { isNotFound } from '@/lib/api/client';
 import { fetchBooking } from '@/lib/api/resources';
 import { formatDay, formatPesos, formatTime } from '@/lib/format';
@@ -11,6 +12,13 @@ import { ConfirmPanel } from './components/ConfirmPanel';
 type PageProps = {
   params: Promise<{ bookingId: string }>;
 };
+
+const SummaryRow = ({ label, value }: { label: string; value: string }) => (
+  <div className="flex items-baseline justify-between gap-4">
+    <dt className="text-muted-foreground text-[13px]">{label}</dt>
+    <dd className="text-[13px] font-bold">{value}</dd>
+  </div>
+);
 
 const CheckoutPage = async ({ params }: PageProps) => {
   const session = await auth();
@@ -32,31 +40,26 @@ const CheckoutPage = async ({ params }: PageProps) => {
 
   return (
     <main className="mx-auto max-w-md px-6 py-14">
-      <h1 className="text-center text-3xl font-extrabold tracking-tight text-neutral-900">Almost there</h1>
-      <p className="mt-1 text-center text-neutral-500">Confirm within the hold window and it&apos;s yours.</p>
+      <FieldLabel className="text-primary">Step 2 of 2 · Confirm</FieldLabel>
+      <h1 className="mt-2.5 text-4xl font-extrabold leading-[1.05] tracking-tight">Almost there.</h1>
+      <p className="text-muted-foreground mt-3 text-sm">Confirm within the hold window and it&apos;s yours.</p>
 
-      <div className="card mt-8 overflow-hidden">
-        <div className="border-b border-neutral-100 bg-neutral-50/60 px-7 py-5">
-          <p className="text-lg font-semibold text-neutral-900">{booking.venueName}</p>
-          <p className="mt-0.5 text-sm text-neutral-500">{booking.courtNames.join(', ')}</p>
+      <div className="border-ink mt-8 rounded-md border-2">
+        <div className="border-border border-b p-6">
+          <p className="text-lg font-extrabold tracking-tight">{booking.venueName}</p>
+          <p className="text-muted-foreground mt-1 text-[13px] font-medium">{booking.courtNames.join(', ')}</p>
         </div>
-        <div className="px-7 py-6">
-          <dl className="flex flex-col gap-2.5 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-neutral-500">Date</dt>
-              <dd className="font-medium text-neutral-900">{formatDay(playStart, booking.venueTimezone)}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-neutral-500">Time</dt>
-              <dd className="font-medium text-neutral-900">
-                {formatTime(playStart, booking.venueTimezone)}–{formatTime(playEnd, booking.venueTimezone)}
-              </dd>
-            </div>
-            <div className="mt-2 flex items-baseline justify-between border-t border-neutral-100 pt-4">
-              <dt className="text-neutral-500">Total</dt>
-              <dd className="text-2xl font-extrabold tracking-tight text-neutral-900">
-                {formatPesos(booking.totalCents)}
-              </dd>
+
+        <div className="p-6">
+          <dl className="flex flex-col gap-3">
+            <SummaryRow label="Date" value={formatDay(playStart, booking.venueTimezone)} />
+            <SummaryRow
+              label="Time"
+              value={`${formatTime(playStart, booking.venueTimezone)}–${formatTime(playEnd, booking.venueTimezone)}`}
+            />
+            <div className="border-ink mt-2 flex items-baseline justify-between border-t-2 pt-4">
+              <dt className="text-[13px] font-bold">Total</dt>
+              <dd className="text-2xl font-extrabold tracking-tight">{formatPesos(booking.totalCents)}</dd>
             </div>
           </dl>
 

@@ -1,16 +1,45 @@
+import type { VenuePhoto } from '@courte/contract';
+
 import { query } from '@/db/client';
 
 export type VenueSummary = {
   id: string;
   name: string;
+  address: string;
   timezone: string;
+  /** Owner-written. Null for most venues — every consumer renders this conditionally. */
+  description: string | null;
+  phone: string | null;
+  website: string | null;
 };
 
-/** One venue's identity for the dashboard header. A missing row is the caller's 404 to raise. */
+/**
+ * One venue's identity, for the dashboard header and the public court page. A missing row is
+ * the caller's 404 to raise — and an archived venue is a missing row, which is what makes
+ * retiring a venue take its dashboard and its public page down together.
+ */
 export const findVenueSummary = async (venueId: string): Promise<VenueSummary | null> => {
-  const rows = await query<VenueSummary>('SELECT id, name, timezone FROM venues WHERE id = $1', [venueId]);
+  const rows = await query<VenueSummary>(
+    'SELECT id, name, address, timezone, description, phone, website FROM venues WHERE id = $1 AND deleted_at IS NULL',
+    [venueId]
+  );
   return rows[0] ?? null;
 };
+
+/**
+ * A venue's photos, court-specific ones included. Ordering is the whole contract: the first
+ * row is the primary photo, which is why there is no is_primary flag to disagree with it.
+ */
+export const findVenuePhotos = (venueId: string): Promise<VenuePhoto[]> =>
+  query<VenuePhoto>(
+    `
+    SELECT url, alt
+    FROM venue_photos
+    WHERE venue_id = $1 AND deleted_at IS NULL
+    ORDER BY sort_order, id
+    `,
+    [venueId]
+  );
 
 /** venue id -> IANA timezone, bulk. */
 export const findVenueTimezones = async (venueIds: string[]): Promise<Map<string, string>> => {

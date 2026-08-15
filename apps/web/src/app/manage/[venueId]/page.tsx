@@ -1,8 +1,15 @@
+import { DateTime } from 'luxon';
 import { notFound, redirect } from 'next/navigation';
 
-import type { BookingStatus, VenueBookingRow } from '@courte/contract';
+import type { VenueBookingRow } from '@courte/contract';
 
 import { auth } from '@/auth';
+import { FieldLabel } from '@/components/atoms/FieldLabel';
+import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { HourHistogram } from '@/components/molecules/HourHistogram';
+import { Panel } from '@/components/molecules/Panel';
+import { VenueSidebar } from '@/components/organisms/VenueSidebar';
+import { BOOKING_STATUS_LABELS, BOOKING_STATUS_TONES } from '@/consts';
 import { isNotFound } from '@/lib/api/client';
 import { fetchVenueDashboard } from '@/lib/api/resources';
 import { formatPesos, formatTime } from '@/lib/format';
@@ -10,71 +17,57 @@ import { addBlackout, recordPayment, recordWalkIn } from '@/server-actions/manag
 
 import { BlackoutForm, PaymentForm, WalkInForm } from './components/DeskForms';
 
-const STATUS_STYLES: Record<BookingStatus, string> = {
-  confirmed: 'bg-court-100 text-court-800',
-  pending: 'bg-amber-100 text-amber-800',
-  cancelled: 'bg-neutral-200 text-neutral-500',
-  completed: 'bg-neutral-200 text-neutral-600',
-  no_show: 'bg-red-100 text-red-700',
-};
+const SOURCE_LABELS = { online: 'Online', phone: 'Phone', walk_in: 'Walk-in' } as const;
 
-const SOURCE_LABELS = { online: 'online', phone: 'phone', walk_in: 'walk-in' } as const;
-
-const StatTile = ({ label, value }: { label: string; value: string }) => (
-  <div className="card p-6">
-    <p className="text-sm font-medium text-neutral-500">{label}</p>
-    <p className="mt-2 text-3xl font-extrabold tracking-tight text-neutral-900">{value}</p>
+const StatCard = ({ label, value, note }: { label: string; value: string; note: string }) => (
+  <div className="border-border rounded-md border p-[18px]">
+    <FieldLabel>{label}</FieldLabel>
+    <p className="mt-3 text-[28px] font-extrabold leading-none tracking-tight">{value}</p>
+    <p className="text-muted-foreground mt-2.5 text-[11.5px] font-semibold">{note}</p>
   </div>
 );
 
-const BookingRow = ({
-  booking,
-  venueId,
-  timezone,
-}: {
+type BookingRowProps = {
   booking: VenueBookingRow;
   venueId: string;
   timezone: string;
-}) => {
+};
+
+const BookingRow = ({ booking, venueId, timezone }: BookingRowProps) => {
   const outstandingCents = booking.totalCents - booking.paidCents;
   const playStart = new Date(booking.playStartIso);
   const playEnd = new Date(booking.playEndIso);
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-4 border-t border-neutral-100 py-4 first:border-t-0">
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="font-semibold text-neutral-900">{booking.customer}</p>
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[booking.status]}`}>
-            {booking.status}
-          </span>
-          <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-500">
-            {SOURCE_LABELS[booking.source]}
-          </span>
-        </div>
-        <p className="mt-1 text-sm text-neutral-500">
-          {booking.courtName} · {formatTime(playStart, timezone)}–{formatTime(playEnd, timezone)} ·{' '}
-          <span className="font-medium text-neutral-700">{formatPesos(booking.totalCents)}</span> · paid{' '}
-          {formatPesos(booking.paidCents)}
-        </p>
-      </div>
-      {outstandingCents > 0 ? (
-        <PaymentForm
-          venueId={venueId}
-          bookingId={booking.id}
-          outstandingPesos={outstandingCents / 100}
-          action={recordPayment}
-        />
-      ) : (
-        <span className="bg-court-100 text-court-800 rounded-full px-3 py-1 text-xs font-semibold">settled</span>
-      )}
-    </li>
+    <tr className="border-border border-t align-middle">
+      <td className="px-5 py-4 text-[13px] font-bold">{booking.customer}</td>
+      <td className="text-muted-foreground whitespace-nowrap px-5 py-4 text-[13px] font-medium">
+        {booking.courtName} · {formatTime(playStart, timezone)}–{formatTime(playEnd, timezone)}
+      </td>
+      <td className="whitespace-nowrap px-5 py-4 text-[13px] font-bold">{formatPesos(booking.totalCents)}</td>
+      <td className="px-5 py-4">
+        <StatusBadge tone="neutral">{SOURCE_LABELS[booking.source]}</StatusBadge>
+      </td>
+      <td className="px-5 py-4">
+        <StatusBadge tone={BOOKING_STATUS_TONES[booking.status]}>{BOOKING_STATUS_LABELS[booking.status]}</StatusBadge>
+      </td>
+      <td className="px-5 py-4">
+        {outstandingCents > 0 ? (
+          <PaymentForm
+            venueId={venueId}
+            bookingId={booking.id}
+            outstandingPesos={outstandingCents / 100}
+            action={recordPayment}
+          />
+        ) : (
+          <StatusBadge tone="positive">Settled</StatusBadge>
+        )}
+      </td>
+    </tr>
   );
 };
 
-const EmptySchedule = () => (
-  <p className="py-8 text-center text-sm text-neutral-500">Nothing booked in the next 24 hours.</p>
-);
+const TABLE_HEADINGS = ['Player', 'Court & time', 'Amount', 'Source', 'Status', 'Payment'] as const;
 
 type PageProps = {
   params: Promise<{ venueId: string }>;
@@ -86,56 +79,97 @@ const ManageVenuePage = async ({ params }: PageProps) => {
 
   const { venueId } = await params;
 
-  // One call carrying the stats, the next 24 hours and the court list. Every boundary in it
-  // is venue-local, computed by the API from the venue's own timezone.
+  // One call carrying the stats, the next 24 hours, the court list and the utilisation series.
+  // Every boundary in it is venue-local, computed by the API from the venue's own timezone.
   const dashboard = await fetchVenueDashboard(session.user.id, venueId).catch(error => {
     if (isNotFound(error)) notFound();
     throw error;
   });
 
-  const { venueTimezone: timezone, stats, bookings } = dashboard;
+  const { venueTimezone: timezone, stats, bookings, utilisationByHour } = dashboard;
   const courtOptions = dashboard.courts;
+  const today = DateTime.now().setZone(timezone);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
-      <p className="text-court-700 text-sm font-medium">For venue owners</p>
-      <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-neutral-900">Venue dashboard</h1>
+    <div className="flex min-h-screen flex-col lg:flex-row">
+      <VenueSidebar
+        venueName={dashboard.venueName}
+        venueMeta={`${courtOptions.length} ${courtOptions.length === 1 ? 'court' : 'courts'}`}
+        items={[{ href: `/manage/${venueId}`, label: 'Overview', isActive: true }]}
+      />
 
-      <div className="mt-7 grid gap-5 sm:grid-cols-3">
-        <StatTile label="Bookings today" value={String(stats.bookingsToday)} />
-        <StatTile label="Upcoming 7 days" value={String(stats.upcomingWeek)} />
-        <StatTile label="Collected this month" value={formatPesos(stats.collectedThisMonthCents)} />
-      </div>
+      <main className="min-w-0 flex-1 px-5 py-6 lg:px-8">
+        <div className="border-ink flex flex-wrap items-end justify-between gap-4 border-b-2 pb-5">
+          <div>
+            <h1 className="text-[28px] font-extrabold tracking-tight">Overview</h1>
+            <p className="text-muted-foreground mt-2 text-[12.5px] font-medium">
+              {today.toFormat('cccc, d LLLL yyyy')} · next 24 hours
+            </p>
+          </div>
+        </div>
 
-      <section className="card mt-8 p-7">
-        <h2 className="text-lg font-semibold text-neutral-900">Next 24 hours</h2>
-        {bookings.length === 0 ? (
-          <EmptySchedule />
-        ) : (
-          <ul className="mt-4">
-            {bookings.map(booking => (
-              <BookingRow key={booking.id} booking={booking} venueId={venueId} timezone={timezone} />
-            ))}
-          </ul>
-        )}
-      </section>
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <StatCard label="Bookings today" value={String(stats.bookingsToday)} note="Play starting today" />
+          <StatCard label="Upcoming 7 days" value={String(stats.upcomingWeek)} note="Confirmed and pending" />
+          <StatCard
+            label="Collected this month"
+            value={formatPesos(stats.collectedThisMonthCents)}
+            note="Payments less refunds"
+          />
+        </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <section className="card p-7">
-          <h2 className="text-lg font-semibold text-neutral-900">Record walk-in or phone booking</h2>
-          <div className="mt-5">
+        <Panel className="mt-6" title="Busiest hours" description="Bookings by hour of day, last 30 days">
+          <HourHistogram bars={utilisationByHour} />
+        </Panel>
+
+        {/* Not a Panel: the table's header row and its own rules run edge to edge, so the
+            surface cannot carry the padding a Panel puts on everything inside it. */}
+        <section className="border-border mt-6 overflow-hidden rounded-md border">
+          <div className="border-ink flex items-center justify-between border-b-2 px-5 py-4">
+            <h2 className="text-[15px] font-extrabold tracking-tight">Next 24 hours</h2>
+            <span className="text-muted-foreground text-[11px] font-semibold uppercase tracking-[0.08em]">
+              {bookings.length} {bookings.length === 1 ? 'booking' : 'bookings'}
+            </span>
+          </div>
+
+          {bookings.length === 0 ? (
+            <p className="text-muted-foreground px-5 py-8 text-sm">Nothing booked in the next 24 hours.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-muted">
+                    {TABLE_HEADINGS.map(heading => (
+                      <th
+                        key={heading}
+                        className="text-muted-foreground whitespace-nowrap px-5 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em]"
+                      >
+                        {heading}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map(booking => (
+                    <BookingRow key={booking.id} booking={booking} venueId={venueId} timezone={timezone} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <Panel title="Record walk-in or phone booking">
             <WalkInForm venueId={venueId} courts={courtOptions} action={recordWalkIn} />
-          </div>
-        </section>
+          </Panel>
 
-        <section className="card p-7">
-          <h2 className="text-lg font-semibold text-neutral-900">Block a court</h2>
-          <div className="mt-5">
+          <Panel title="Block a court">
             <BlackoutForm venueId={venueId} courts={courtOptions} action={addBlackout} />
-          </div>
-        </section>
-      </div>
-    </main>
+          </Panel>
+        </div>
+      </main>
+    </div>
   );
 };
 

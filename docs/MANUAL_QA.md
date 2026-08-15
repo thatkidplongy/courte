@@ -2,7 +2,11 @@
 
 Every feature in v1, in dependency order, with the exact steps and the expected result.
 Times below are venue-local (Asia/Manila). Seed users: `player@courte.test`,
-`owner@picklerroom.test`, `owner@smashcentral.test` — any email works with the dev sign-in.
+`owner@metrosports.test`, `owner@elroi.test`, `owner@point21.test`, and
+`desk@cebucitysports.test` who owns three venues at once — any email works with the dev sign-in.
+
+The seed is six real Cebu City venues (17 courts) taken from OpenStreetMap; the search origin
+is Fuente Osmeña Circle, so every result sits between 1.1 km and 2.6 km out.
 
 ## Setup
 
@@ -25,24 +29,79 @@ app renders but every list is empty or errors, confirm the API is up with
 Sign in at `http://localhost:3000/api/auth/signin` → "Dev sign-in (any email)".
 To reset to pristine seed data at any point: `docker compose down -v && docker compose up -d && pnpm db:migrate`.
 
-## A — Search and availability
+## A — Landing page
 
-| #   | Do                                                                  | Expect                                                                            |
-| --- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| A1  | Open `/` signed out                                                 | Dark hero, floating search bar, pickleball preselected, today's date              |
-| A2  | Search badminton, tomorrow                                          | Smash Central, 1.1 km, chips starting **10:00 AM** (opening window, not midnight) |
-| A3  | Search pickleball, today, late evening                              | Chips only from the next half-hour onward — past times suppressed                 |
-| A4  | Search tennis                                                       | Empty state, no error                                                             |
-| A5  | Card shows "from ₱500/hr" (badminton) / "from ₱450/hr" (pickleball) | Cheapest non-member rule, from real data                                          |
+| #   | Do                                     | Expect                                                                                         |
+| --- | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| A1  | Open `/` signed out                    | Dark hero, floating search bar, pickleball preselected, today's date, location reads Cebu City |
+| A2  | "Top courts near you"                  | At most four cards — a teaser, not the catalogue — beside a "Browse every court →" link        |
+| A3  | Search badminton, tomorrow             | Leaves the hero and lands on `/courts?sport=badminton&date=…` with the sport already applied   |
+| A4  | Header "Find a court", footer the same | Both go to `/courts`, never back to `/`                                                        |
+| A5  | Stats band under the teaser            | Counts describe the cards actually shown, not hardcoded numbers                                |
+
+## A′ — Marketplace (`/courts`)
+
+Search is city-wide here: the page asks for a 20 km radius rather than the 10 km a proximity
+search defaults to, so the mountain barangays are inside the result set.
+
+| #   | Do                                                | Expect                                                                                         |
+| --- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| A′1 | Open `/courts` with no query                      | **17 courts in Cebu City**, all six sports, nearest first, 12 per page                         |
+| A′2 | Page 2                                            | Remaining 5 courts; "Page 2 of 2"; Next is disabled                                            |
+| A′3 | Sort "Cheapest first"                             | ₱150 tennis first; Mambaling (2.6 km) outranks White Hills (2.3 km) — price wins over distance |
+| A′4 | Sport tennis + surface outdoor                    | 4 courts; "Clear 2 filters" appears; sort is not counted as a filter                           |
+| A′5 | Price "Under ₱200/hr"                             | 7 courts, none above ₱200. A court with no public price rule is excluded, not treated as free  |
+| A′6 | Sport futsal + surface indoor                     | Empty state with a "Show every court" escape hatch, not an error                               |
+| A′7 | Filter, then page 2, then Next                    | Filters survive paging — the pager rewrites only `page`                                        |
+| A′8 | `?sport=chess&sort=nonsense`                      | Browses as if unfiltered; junk narrows to the contract enums rather than erroring              |
+| A′9 | A card at a venue that has closed for the evening | "No times left" — never "fully booked", which would be a claim the data does not support       |
+
+## A″ — Venue identity (surface, amenities, photos)
+
+| #    | Do                                                                    | Expect                                                                                                  |
+| ---- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| A″1  | Rail → Surface → tick only "Covered"                                  | 2 courts, both at Mambaling; each row reads "Covered" — not indoor, not outdoor                         |
+| A″2  | Rail → Amenities → tick "Air conditioning"                            | 8 courts across Metro Sports, El Roi and Point 21                                                       |
+| A″3  | Add "Showers" to that                                                 | Narrows to 5 courts — El Roi drops out. Ticking two amenities means **both**, never either              |
+| A″4  | The "clear filters" count with a sport plus three amenities           | "Clear 2 filters" — amenities count once as a group, however many are ticked                            |
+| A″5  | `?amenities=helipad`                                                  | Zero results, not an error and not silently unfiltered. A well-formed slug nobody offers matches nobody |
+| A″6  | `?amenities=NOT-A-SLUG` on `/courts`                                  | Browses as unfiltered — the web app drops malformed slugs, as it does junk `sport` and `sort`           |
+| A″7  | Same against the API: `localhost:4000/v1/courts?amenities=NOT-A-SLUG` | **400** with a field error. The app is lenient at its edge; the API is strict at its own                |
+| A″8  | `?amenities=aircon,aircon`                                            | Identical to `?amenities=aircon`. Slugs are deduplicated, or the AND count would match nothing          |
+| A″9  | A court page for any venue                                            | The seeded description sits under the address; amenities render as chips below the fact rule            |
+| A″10 | `curl -s localhost:4000/v1/amenities`                                 | Six rows, catalogue order. This is the one cached read on the search page (1 hour)                      |
+| A″11 | Every venue, with no photos in the table                              | Cards, rows and the court page banner all show the sport glyph. No broken images, no empty frames       |
+
+Photos have no upload path yet. To see the gallery, insert a row by hand and reload the court page:
+
+```bash
+docker exec courte-postgres psql -U courte -d courte -c "INSERT INTO venue_photos (venue_id, url, alt) VALUES ('00000000-0000-0000-0000-0000000000c1', 'https://example.test/hall.jpg', 'The main hall');"
+```
+
+## A‴ — Archiving
+
+`deleted_at` is the only way inventory is retired. Discovery hides an archived row; the joins
+that render an existing booking do not, so history survives.
+
+| #   | Do                                                                                      | Expect                                                                               |
+| --- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| A‴1 | `UPDATE courts SET deleted_at = now() WHERE id = '…d05';`                               | El Roi drops from 3 rows to 2 in search                                              |
+| A‴2 | Any remaining El Roi row                                                                | Now says "2 courts" — the sibling count excludes archived courts                     |
+| A‴3 | Open `/courts/…d05` directly                                                            | **404**                                                                              |
+| A‴4 | Open a sibling's court page                                                             | The grid has two rows; the archived court is not a column                            |
+| A‴5 | A booking already played on that court, in My bookings and on the dashboard             | Still listed, still naming the court. Lookup does not filter                         |
+| A‴6 | `UPDATE courts SET deleted_at = NULL WHERE id = '…d05';`                                | Everything comes back. Archiving is reversible; deletion would not be                |
+| A‴7 | `UPDATE venues SET deleted_at = now() WHERE id = '…c2';` then open a court's page there | **404** — archiving a venue closes every court under it, not just its search listing |
+| A‴8 | Restore the venue                                                                       | Its courts are bookable again                                                        |
 
 ## B — Court page
 
-| #   | Do                               | Expect                                                                       |
-| --- | -------------------------------- | ---------------------------------------------------------------------------- |
-| B1  | Click a chip on a search card    | Court page opens with that chip preselected (green)                          |
-| B2  | Check duration options           | 1 h → 3 h in 30-min steps (court's min/max/increment)                        |
-| B3  | Click Book with no chip selected | Button is disabled                                                           |
-| B4  | Badminton, any future date       | First chip 10:00 AM, last chip 11:00 PM (a 1-h booking must end by midnight) |
+| #   | Do                               | Expect                                                                      |
+| --- | -------------------------------- | --------------------------------------------------------------------------- |
+| B1  | Click a chip on a search card    | Court page opens with that chip preselected (green)                         |
+| B2  | Check duration options           | 1 h → 3 h in 30-min steps (court's min/max/increment)                       |
+| B3  | Click Book with no chip selected | Button is disabled                                                          |
+| B4  | El Roi court, any future date    | First chip 6:00 AM, last chip 11:00 PM (a 1-h booking must end by midnight) |
 
 ## C — Hold and checkout
 
@@ -59,8 +118,8 @@ To reset to pristine seed data at any point: `docker compose down -v && docker c
 | #   | Do                                   | Expect                                                       |
 | --- | ------------------------------------ | ------------------------------------------------------------ |
 | D1  | Confirm inside the window            | Redirect to My bookings; row `confirmed · unpaid`            |
-| D2  | Book Mon–Fri 17:00–22:00 badminton   | Peak price ₱700/hr; outside it ₱500/hr                       |
-| D3  | Book 9:30–10:30 PM weekday badminton | **₱600.00** — 30 min peak + 30 min base, the segment cut     |
+| D2  | Book Mon–Fri 17:00–22:00 at El Roi   | Peak price ₱450/hr; outside it ₱300/hr                       |
+| D3  | Book 9:30–10:30 PM weekday at El Roi | **₱375.00** — 30 min peak + 30 min base, the segment cut     |
 | D4  | Cancel a booking >24 h out           | Row flips to cancelled; slot reappears publicly              |
 | D5  | Cancel a booking <24 h out           | Refused: "inside its cancellation window"; booking untouched |
 
@@ -87,22 +146,23 @@ To reset to pristine seed data at any point: `docker compose down -v && docker c
 
 | #   | Do                                                                                                                                                                                                              | Expect                                                                                                                                   |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| G1  | As `player@courte.test`, open `/manage/00000000-0000-0000-0000-0000000000c2`                                                                                                                                    | **404** — not 403; existence stays hidden                                                                                                |
-| G2  | As `owner@smashcentral.test`, same URL                                                                                                                                                                          | Dashboard renders; "Manage venue" appears in the header                                                                                  |
+| G1  | As `player@courte.test`, open `/manage/00000000-0000-0000-0000-0000000000c1`                                                                                                                                    | **404** — not 403; existence stays hidden                                                                                                |
+| G2  | As `owner@metrosports.test`, same URL                                                                                                                                                                           | Dashboard renders; "Manage venue" appears in the header                                                                                  |
 | G3  | Signed out, open `/bookings`                                                                                                                                                                                    | Bounced to sign-in with a return URL (proxy gate)                                                                                        |
-| G4  | Staff role: `INSERT INTO venue_members (venue_id, user_id, role) SELECT '00000000-0000-0000-0000-0000000000c2', id, 'staff' FROM users WHERE email = 'staff@test.dev';` after signing in once as staff@test.dev | Staff sees the dashboard and can record walk-ins/payments; owner-only actions (pricing, staff, revenue) are the untested seam — see gaps |
+| G4  | Staff role: `INSERT INTO venue_members (venue_id, user_id, role) SELECT '00000000-0000-0000-0000-0000000000c1', id, 'staff' FROM users WHERE email = 'staff@test.dev';` after signing in once as staff@test.dev | Staff sees the dashboard and can record walk-ins/payments; owner-only actions (pricing, staff, revenue) are the untested seam — see gaps |
+| G5  | As `desk@cebucitysports.test`, open `/v1/venues/memberships` through the app                                                                                                                                    | Three venues come back — White Hills, Mambaling, Cebu City Sports Complex                                                                |
 
 ## H — Venue desk
 
-| #   | Do                                       | Expect                                                                                   |
-| --- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
-| H1  | Record a walk-in, weekday 6 PM badminton | Appears in Next 24 hours at ₱700 (peak), source `walk-in`                                |
-| H2  | Same court/time again                    | "That court is already taken for that time"                                              |
-| H3  | Public court page for that day           | The walk-in's slot (plus buffer) is gone from chips                                      |
-| H4  | Take partial payment (e.g. 200)          | Row shows paid ₱200.00, state partially paid; take the rest → `settled`, form disappears |
-| H5  | "Collected this month" tile              | Sum of recorded payments, immediately updated                                            |
-| H6  | Blackout over free time                  | Chips hole appears publicly                                                              |
-| H7  | Blackout over a sold slot                | Refused: "Existing bookings overlap that period"                                         |
+| #   | Do                                                       | Expect                                                                                   |
+| --- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| H1  | Record a walk-in, weekday 6 PM badminton at Metro Sports | Appears in Next 24 hours at ₱500 (peak), source `walk-in`                                |
+| H2  | Same court/time again                                    | "That court is already taken for that time"                                              |
+| H3  | Public court page for that day                           | The walk-in's slot (plus buffer) is gone from chips                                      |
+| H4  | Take partial payment (e.g. 200)                          | Row shows paid ₱200.00, state partially paid; take the rest → `settled`, form disappears |
+| H5  | "Collected this month" tile                              | Sum of recorded payments, immediately updated                                            |
+| H6  | Blackout over free time                                  | Chips hole appears publicly                                                              |
+| H7  | Blackout over a sold slot                                | Refused: "Existing bookings overlap that period"                                         |
 
 ## I — Jobs (now in the API process)
 
@@ -148,8 +208,13 @@ Things a tester should NOT expect to find, so their absence isn't mistaken for a
   `claimed` and simply lapses back/expires. Functionally fine, cosmetically loose.
 - **Series payments** — the ledger supports paying a whole series (`payments.series_id`);
   the dashboard only records per-occurrence payments.
-- **Venue/court/pricing CRUD** — venues, courts, hours and price rules are seed-only; owners
-  cannot edit them in the UI.
+- **Venue/court/pricing CRUD** — venues, courts, hours, price rules, photos and amenities are
+  all seed-only; owners cannot edit any of them in the UI. This is step 2 of
+  `docs/BACKEND_PLAN.md`.
+- **Photo upload** — `venue_photos` exists and every surface renders from it, but there is no
+  object storage and no upload endpoint, so the table is empty and everything shows the glyph
+  fallback. A photo URL that 404s renders as blank space rather than falling back, because
+  catching that needs an onError handler and so a client component.
 - **Notifications** — waitlist offers appear in-app only; no email/SMS.
 - **Google OAuth** — pending real credentials; dev sign-in is the local path.
 - **Integration tests in CI, deploy** — not yet set up. The 63 unit tests cover the domain

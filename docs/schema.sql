@@ -8,6 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;     -- gen_random_uuid
 CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE TYPE sport             AS ENUM ('pickleball','badminton','basketball','volleyball','tennis','futsal');
+CREATE TYPE court_surface     AS ENUM ('indoor','outdoor','covered');
 CREATE TYPE booking_status    AS ENUM ('pending','confirmed','cancelled','completed','no_show');
 CREATE TYPE booking_source    AS ENUM ('online','phone','walk_in');
 CREATE TYPE reservation_kind  AS ENUM ('booking','hold','blackout');
@@ -27,6 +28,10 @@ CREATE TABLE users (
 
 -- --------------------------------------------------------------- inventory
 
+-- `deleted_at` is the archive marker, repo-wide: NULL is live, a timestamp is retired.
+-- Nothing in the inventory is ever hard-deleted — reservations cascade from courts, so a real
+-- DELETE would take paid bookings' slots with it. Filtered at discovery, not at lookup; see
+-- the soft-delete section of CONVENTIONS.md.
 CREATE TABLE venues (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name                text NOT NULL,
@@ -34,9 +39,13 @@ CREATE TABLE venues (
   location            geography(Point, 4326) NOT NULL,
   timezone            text NOT NULL,                        -- IANA, e.g. 'Asia/Manila'
   cancellation_window interval NOT NULL DEFAULT '24 hours',
+  description         text,                                 -- owner-written; null for most venues
+  phone               text,
+  website             text,
+  deleted_at          timestamptz,
   created_at          timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX venues_location_idx ON venues USING gist (location);
+CREATE INDEX venues_location_idx ON venues USING gist (location) WHERE deleted_at IS NULL;
 
 CREATE TABLE venue_members (
   venue_id uuid NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -50,15 +59,53 @@ CREATE TABLE courts (
   venue_id             uuid NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
   name                 text NOT NULL,
   sport                sport NOT NULL,
-  is_indoor            boolean NOT NULL DEFAULT true,
+  surface              court_surface NOT NULL,               -- covered is roofed but open-sided
   min_duration_minutes int NOT NULL DEFAULT 60,
   max_duration_minutes int NOT NULL DEFAULT 240,
   increment_minutes    int NOT NULL DEFAULT 30,
   buffer_minutes       int NOT NULL DEFAULT 0,               -- changeover, enforced via reservations.during
+  deleted_at           timestamptz,
   created_at           timestamptz NOT NULL DEFAULT now(),
-  CHECK (min_duration_minutes <= max_duration_minutes)
+  CHECK (min_duration_minutes <= max_duration_minutes),
+  UNIQUE (id, venue_id)                                      -- target of venue_photos' composite FK
 );
-CREATE INDEX courts_venue_sport_idx ON courts (venue_id, sport);
+CREATE INDEX courts_live_venue_idx ON courts (venue_id, sport) WHERE deleted_at IS NULL;
+
+-- No is_primary flag: two rows could both claim it. The lowest sort_order is the primary photo.
+-- `alt` is NOT NULL because a photo with no alternative text is a defect, not an option.
+CREATE TABLE venue_photos (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id   uuid NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+  court_id   uuid,                                           -- null = a photo of the venue itself
+  url        text NOT NULL,
+  alt        text NOT NULL,
+  sort_order int NOT NULL DEFAULT 0,
+  deleted_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  FOREIGN KEY (court_id, venue_id) REFERENCES courts (id, venue_id) ON DELETE CASCADE
+);
+CREATE INDEX venue_photos_venue_idx ON venue_photos (venue_id, sort_order) WHERE deleted_at IS NULL;
+
+-- A lookup table, not an enum: a new amenity should be a row, not a migration. The slug is the
+-- natural key because it travels in `?amenities=parking,showers`.
+CREATE TABLE amenities (
+  slug       text PRIMARY KEY CHECK (slug ~ '^[a-z][a-z0-9_]*$'),
+  label      text NOT NULL,
+  sort_order int NOT NULL DEFAULT 0,
+  deleted_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Writers revive rather than insert, or re-ticking an amenity is a PK violation:
+--   ON CONFLICT (venue_id, amenity_slug) DO UPDATE SET deleted_at = NULL
+CREATE TABLE venue_amenities (
+  venue_id     uuid NOT NULL REFERENCES venues(id)      ON DELETE CASCADE,
+  amenity_slug text NOT NULL REFERENCES amenities(slug) ON DELETE RESTRICT,
+  deleted_at   timestamptz,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (venue_id, amenity_slug)
+);
+CREATE INDEX venue_amenities_slug_idx ON venue_amenities (amenity_slug) WHERE deleted_at IS NULL;
 
 -- A window is an anchor weekday, a local start time, and a duration. This is the
 -- only shape that handles both a 24/7 pickleball court and a badminton court open

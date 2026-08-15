@@ -14,6 +14,24 @@ import {
 export const VENUE_ROLES = ['owner', 'staff'] as const;
 export type VenueRole = (typeof VENUE_ROLES)[number];
 
+/**
+ * One entry in the amenity catalogue. The slug is the stable identifier — it travels in the
+ * search URL and is what a venue's rows point at; the label is the only thing ever rendered.
+ */
+export type Amenity = {
+  slug: string;
+  label: string;
+};
+
+/**
+ * `alt` is not optional here for the same reason it is NOT NULL in the database: a photo the
+ * reader cannot hear described is a photo half the audience does not get.
+ */
+export type VenuePhoto = {
+  url: string;
+  alt: string;
+};
+
 export type VenueMembershipSummary = {
   venueId: string;
   venueName: string;
@@ -51,6 +69,11 @@ export type VenueDashboardResponse = {
   };
   bookings: VenueBookingRow[];
   courts: Array<{ id: string; name: string }>;
+  /**
+   * Bookings per venue-local hour over the last 30 days — the shape of the venue's demand.
+   * Always 24 entries, hour 0 to 23, so a quiet hour is a visible zero rather than a gap.
+   */
+  utilisationByHour: Array<{ hour: number; bookings: number }>;
 };
 
 export const recordWalkInBodySchema = z.object({

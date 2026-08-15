@@ -1,48 +1,185 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Courte's theme, from the Modernist design system retuned to a green brand
+   (claude.ai/design — "UI mockups brand decision"). The system is flat and
+   architectural: one radius, 2px rules doing the organising, no decorative
+   shadows, everything flush left, accent used sparingly.
+
+   This block is the only place a brand value is written down. Components
+   reference the semantic tokens below and never a hex.
+   ══════════════════════════════════════════════════════════════════════ */
 
 @theme {
-  --color-court-50: #ecfdf3;
-  --color-court-100: #d1fae1;
-  --color-court-200: #a7f3c9;
-  --color-court-300: #6ee7a8;
-  --color-court-400: #34d382;
-  --color-court-500: #10b968;
-  --color-court-600: #059651;
-  --color-court-700: #047842;
-  --color-court-800: #065f37;
-  --color-court-900: #064e2e;
-  --color-ink-950: #0a0f0c;
-  --color-ink-900: #121814;
-  --color-ink-800: #1c241f;
+  /* The brand ramp. 600 is the accent the design doc names, 700 its hover and
+     800 its pressed state; the rest fill the scale for tints and dark ground. */
+  --color-brand-50: #eaf6ef;
+  --color-brand-100: #d3ecdf;
+  --color-brand-200: #a8d9be;
+  --color-brand-300: #74c299;
+  --color-brand-400: #34c47a;
+  --color-brand-500: #16b45c;
+  --color-brand-600: #12a150;
+  --color-brand-700: #0c7a3c;
+  --color-brand-800: #075c2c;
+  --color-brand-900: #06431f;
+
+  /* Dark chrome. `night` is the ground under the header, hero and footer;
+     `ink` is body text and the second-tier button fill. They are deliberately
+     two values, not one — the fill has to read as raised against the ground. */
+  --color-night: #0e1512;
+  --color-ink: #14181a;
+
+  /* The rule colour. Every 1px divider in the system is this; a 2px divider is
+     `border-ink`, which is the design's one loud structural move. */
+  --color-line: #e3e7e5;
+
+  /* The one hue outside the mono scheme. A booking that is pending or partly
+     paid is neither settled nor wrong, and neither the accent nor the neutral
+     ramp can say that — so amber earns its place, and only here. */
+  --color-warn-50: #fdf0d9;
+  --color-warn-700: #8a5a00;
 }
 
-/* Shared primitives — one definition, reused everywhere (baseline standards: build
-   primitives once). Composed from utilities via @apply, the sanctioned pattern. */
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
 
-.input {
-  @apply focus:border-court-500 focus:ring-court-500/20 w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-2.5 text-sm text-neutral-900 shadow-sm transition-colors placeholder:text-neutral-400 focus:outline-none focus:ring-2;
+  /* One radius, enforced rather than agreed. Tailwind's whole rounded-* scale
+     collapses onto the single token, so `rounded-2xl` left anywhere in the
+     codebase cannot quietly reintroduce a second corner size. `rounded-full`
+     is untouched and stays available for dots and avatars. */
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --radius-4xl: var(--radius);
 }
 
-.field-label {
-  @apply text-xs font-medium uppercase tracking-wide text-neutral-500;
+:root {
+  --radius: 6px;
+
+  --background: #ffffff;
+  --foreground: #14181a;
+  --card: #ffffff;
+  --card-foreground: #14181a;
+  --popover: #ffffff;
+  --popover-foreground: #14181a;
+
+  --primary: #12a150;
+  --primary-foreground: #ffffff;
+
+  /* Not shadcn's usual pale grey: in this system the second-tier action is an
+     ink fill ("View court", "Invite players"), so `variant="secondary"` has to
+     resolve to ink or every such button becomes a one-off. */
+  --secondary: #14181a;
+  --secondary-foreground: #ffffff;
+
+  /* The subtle fill — table headers, summary blocks, the booked slot. */
+  --muted: #f4f6f5;
+  --muted-foreground: #6d7773;
+
+  --accent: #eaf6ef;
+  --accent-foreground: #0c7a3c;
+
+  --destructive: #c0341c;
+  --border: #e3e7e5;
+  --input: #e3e7e5;
+  --ring: #12a150;
+
+  --chart-1: #12a150;
+  --chart-2: #74c299;
+  --chart-3: #a8d9be;
+  --chart-4: #6d7773;
+  --chart-5: #e3e7e5;
+
+  --sidebar: #0e1512;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #12a150;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgb(255 255 255 / 0.07);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.1);
+  --sidebar-ring: #12a150;
 }
 
-.btn-primary {
-  @apply bg-court-600 hover:bg-court-700 inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40;
+/* Nothing in the app sets `.dark` yet — there is no theme switcher and the
+   design doc specifies one ground. It is defined so that turning the class on
+   lands on the palette rather than on shadcn's stock greys. */
+.dark {
+  --background: #0e1512;
+  --foreground: #f2f5f3;
+  --card: #14181a;
+  --card-foreground: #f2f5f3;
+  --popover: #14181a;
+  --popover-foreground: #f2f5f3;
+  --primary: #34c47a;
+  --primary-foreground: #0e1512;
+  --secondary: #f2f5f3;
+  --secondary-foreground: #14181a;
+  --muted: #1c2321;
+  --muted-foreground: #9aa4a0;
+  --accent: #075c2c;
+  --accent-foreground: #d3ecdf;
+  --destructive: #e2624a;
+  --border: rgb(255 255 255 / 0.12);
+  --input: rgb(255 255 255 / 0.16);
+  --ring: #34c47a;
 }
 
-.btn-outline {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 shadow-sm transition hover:border-neutral-400 hover:bg-neutral-50 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40;
-}
-
-.chip {
-  @apply border-court-300 bg-court-50 text-court-800 hover:border-court-500 hover:bg-court-100 inline-flex items-center rounded-full border px-3.5 py-1.5 text-sm font-medium transition;
-}
-
-.chip-selected {
-  @apply border-court-600 bg-court-600 inline-flex items-center rounded-full border px-3.5 py-1.5 text-sm font-semibold text-white shadow-sm;
-}
-
-.card {
-  @apply rounded-2xl border border-neutral-200/70 bg-white shadow-[0_1px_3px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.08)];
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  /* Headings are display-grade in this system: heaviest weight, tight tracking,
+     flush left. Set once here so no heading has to remember it. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-extrabold tracking-tight;
+  }
 }

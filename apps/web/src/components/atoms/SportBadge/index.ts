@@ -1,0 +1,1 @@
+export { SportBadge } from './SportBadge';

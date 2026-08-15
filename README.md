@@ -40,6 +40,19 @@ pnpm dev                                 # both services
 The API listens on `:4000`, the web app on `:3000`. Interactive API docs are at
 `http://localhost:4000/docs` outside production.
 
+## Seed data
+
+Six real Cebu City venues, 17 courts. Venue names, coordinates, streets and — for three of
+them — opening hours come from OpenStreetMap via Overpass, with Nominatim filling in the
+addresses OSM had no `addr:street` for. That data is ODbL, so the footer carries the
+attribution and it must stay there. Court composition and every rate are fixtures: OSM models
+neither bookable courts nor prices, so nothing in the seed is a real price list for a real
+business. [The migration](db/migrations/20260813200000_reseed_cebu_city_venues.sql) says which
+fields are which.
+
+The search origin is Fuente Osmeña Circle, deliberately a landmark rather than a venue, so no
+result ever reports a distance of zero.
+
 ## Commands
 
 | Command                                         | What it does                                                      |
@@ -74,6 +87,12 @@ docs/                scope, ADRs, schema reference, manual QA
 
 Versioned under `/v1`, plural resources, camelCase payloads, `{ code, message, errors }` on
 every failure. `/health` sits outside the version prefix and runs a real query.
+
+`GET /v1/courts` is the marketplace query. Every filter it accepts — `sport`, `setting`,
+`maxRatePerHourCents`, `sort`, `radiusMetres`, `date` — is resolved in SQL, including the
+cheapest public rate. That is not an optimisation: a filter applied after the page came back
+would leave `total` describing one set of courts and `data` another, and the pager would offer
+pages that do not exist. Omitting `sport` means every sport.
 
 | Method       | Path                              | Auth                  |
 | ------------ | --------------------------------- | --------------------- |

@@ -4,6 +4,12 @@ import { useActionState } from 'react';
 
 import { DateTime } from 'luxon';
 
+import { Notice } from '@/components/atoms/Notice';
+import { ControlGroup } from '@/components/molecules/ControlGroup';
+import { FormField } from '@/components/molecules/FormField';
+import { SelectField, type SelectOption } from '@/components/molecules/SelectField';
+import { Button } from '@/components/shadcn/ui/button';
+import { Input } from '@/components/shadcn/ui/input';
 import type { ManageFormState } from '@/server-actions/manageVenue';
 
 type CourtOption = {
@@ -13,13 +19,31 @@ type CourtOption = {
 
 type DeskAction = (state: ManageFormState, formData: FormData) => Promise<ManageFormState>;
 
+const DURATION_OPTIONS: SelectOption[] = [
+  { value: '60', label: '1 h' },
+  { value: '90', label: '90 min' },
+  { value: '120', label: '2 h' },
+  { value: '180', label: '3 h' },
+];
+
+const SOURCE_OPTIONS: SelectOption[] = [
+  { value: 'walk_in', label: 'Walk-in' },
+  { value: 'phone', label: 'Phone' },
+];
+
+const PAYMENT_METHOD_OPTIONS: SelectOption[] = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'gcash', label: 'GCash' },
+  { value: 'maya', label: 'Maya' },
+  { value: 'card', label: 'Card' },
+];
+
+const toCourtOptions = (courts: CourtOption[]): SelectOption[] =>
+  courts.map(court => ({ value: court.id, label: court.name }));
+
 const FormStatus = ({ state }: { state: ManageFormState }) => {
-  if (state.error) {
-    return <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700">{state.error}</p>;
-  }
-  if (state.ok) {
-    return <p className="bg-court-50 text-court-800 rounded-xl px-4 py-2.5 text-sm font-medium">Done.</p>;
-  }
+  if (state.error) return <Notice tone="error">{state.error}</Notice>;
+  if (state.ok) return <Notice tone="success">Done.</Notice>;
   return null;
 };
 
@@ -27,6 +51,14 @@ const toUtcIso = (local: string): string => {
   const parsed = DateTime.fromISO(local);
   return parsed.toUTC().toISO() ?? '';
 };
+
+/**
+ * The one native picker left in the app. `SelectField` and `DateField` exist because the OS
+ * draws — and refuses to style — a native popup, but neither covers a date *and* a time in one
+ * field, and the desk forms need both. Rather than fake it with two controls that can disagree,
+ * this stays native until there is a styled datetime primitive. Tracked in CONVENTIONS.md.
+ */
+const DateTimeInput = ({ name }: { name: string }) => <Input type="datetime-local" name={name} required />;
 
 type WalkInFormProps = {
   venueId: string;
@@ -41,6 +73,7 @@ type WalkInFormProps = {
  */
 export const WalkInForm = ({ venueId, courts, action }: WalkInFormProps) => {
   const [state, formAction, isPending] = useActionState(action, {});
+  const courtOptions = toCourtOptions(courts);
 
   const handleSubmit = (formData: FormData) => {
     formData.set('startIso', toUtcIso(String(formData.get('startLocal') ?? '')));
@@ -51,45 +84,26 @@ export const WalkInForm = ({ venueId, courts, action }: WalkInFormProps) => {
     <form action={handleSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="venueId" value={venueId} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Customer</span>
-          <input name="customerName" required placeholder="Maria Santos" className="input" />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Court</span>
-          <select name="courtId" className="input">
-            {courts.map(court => (
-              <option key={court.id} value={court.id}>
-                {court.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Start</span>
-          <input type="datetime-local" name="startLocal" required className="input" />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Duration</span>
-          <select name="durationMinutes" className="input">
-            <option value="60">1 h</option>
-            <option value="90">90 min</option>
-            <option value="120">2 h</option>
-            <option value="180">3 h</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Source</span>
-          <select name="source" className="input">
-            <option value="walk_in">Walk-in</option>
-            <option value="phone">Phone</option>
-          </select>
-        </label>
+        <FormField label="Customer">
+          <Input name="customerName" required placeholder="Maria Santos" />
+        </FormField>
+        <ControlGroup label="Court">
+          <SelectField name="courtId" defaultValue={courtOptions[0]?.value} options={courtOptions} />
+        </ControlGroup>
+        <FormField label="Start">
+          <DateTimeInput name="startLocal" />
+        </FormField>
+        <ControlGroup label="Duration">
+          <SelectField name="durationMinutes" defaultValue="60" options={DURATION_OPTIONS} />
+        </ControlGroup>
+        <ControlGroup label="Source">
+          <SelectField name="source" defaultValue="walk_in" options={SOURCE_OPTIONS} />
+        </ControlGroup>
       </div>
       <FormStatus state={state} />
-      <button type="submit" disabled={isPending} className="btn-primary w-fit">
+      <Button type="submit" disabled={isPending} className="w-fit">
         {isPending ? 'Recording…' : 'Record booking'}
-      </button>
+      </Button>
     </form>
   );
 };
@@ -102,6 +116,7 @@ type BlackoutFormProps = {
 
 export const BlackoutForm = ({ venueId, courts, action }: BlackoutFormProps) => {
   const [state, formAction, isPending] = useActionState(action, {});
+  const courtOptions = toCourtOptions(courts);
 
   const handleSubmit = (formData: FormData) => {
     formData.set('startIso', toUtcIso(String(formData.get('startLocal') ?? '')));
@@ -113,33 +128,23 @@ export const BlackoutForm = ({ venueId, courts, action }: BlackoutFormProps) => 
     <form action={handleSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="venueId" value={venueId} />
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Court</span>
-          <select name="courtId" className="input">
-            {courts.map(court => (
-              <option key={court.id} value={court.id}>
-                {court.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Reason</span>
-          <input name="reason" required placeholder="Resurfacing" className="input" />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">From</span>
-          <input type="datetime-local" name="startLocal" required className="input" />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="field-label">Until</span>
-          <input type="datetime-local" name="endLocal" required className="input" />
-        </label>
+        <ControlGroup label="Court">
+          <SelectField name="courtId" defaultValue={courtOptions[0]?.value} options={courtOptions} />
+        </ControlGroup>
+        <FormField label="Reason">
+          <Input name="reason" required placeholder="Resurfacing" />
+        </FormField>
+        <FormField label="From">
+          <DateTimeInput name="startLocal" />
+        </FormField>
+        <FormField label="Until">
+          <DateTimeInput name="endLocal" />
+        </FormField>
       </div>
       <FormStatus state={state} />
-      <button type="submit" disabled={isPending} className="btn-outline w-fit">
+      <Button type="submit" variant="outline" disabled={isPending} className="w-fit">
         {isPending ? 'Blocking…' : 'Block court'}
-      </button>
+      </Button>
     </form>
   );
 };
@@ -155,28 +160,27 @@ export const PaymentForm = ({ venueId, bookingId, outstandingPesos, action }: Pa
   const [state, formAction, isPending] = useActionState(action, {});
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    <form action={formAction} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="venueId" value={venueId} />
       <input type="hidden" name="bookingId" value={bookingId} />
-      <input
+      <Input
         type="number"
         name="amountPesos"
         step="0.01"
         min="0.01"
         defaultValue={outstandingPesos.toFixed(2)}
-        className="input w-28 py-1.5"
+        className="w-28"
         aria-label="Amount in pesos"
       />
-      <select name="method" className="input w-fit py-1.5" aria-label="Payment method">
-        <option value="cash">Cash</option>
-        <option value="gcash">GCash</option>
-        <option value="maya">Maya</option>
-        <option value="card">Card</option>
-      </select>
-      <button type="submit" disabled={isPending} className="btn-primary px-4 py-1.5">
+      <SelectField name="method" defaultValue="cash" options={PAYMENT_METHOD_OPTIONS} className="w-28" />
+      <Button type="submit" disabled={isPending}>
         {isPending ? '…' : 'Take payment'}
-      </button>
-      {state.error ? <span className="text-xs font-medium text-red-600">{state.error}</span> : null}
+      </Button>
+      {state.error ? (
+        <span role="alert" className="text-destructive text-xs font-medium">
+          {state.error}
+        </span>
+      ) : null}
     </form>
   );
 };
