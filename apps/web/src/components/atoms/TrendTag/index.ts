@@ -1,0 +1,1 @@
+export { TrendTag } from './TrendTag';

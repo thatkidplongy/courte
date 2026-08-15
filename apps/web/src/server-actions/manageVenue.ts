@@ -10,6 +10,7 @@ import { MALFORMED_ID_ERROR } from '@/consts';
 import { ApiError } from '@/lib/api/client';
 import {
   addBlackout as addBlackoutRequest,
+  markNoShow as markNoShowRequest,
   recordPayment as recordPaymentRequest,
   recordWalkIn as recordWalkInRequest,
 } from '@/lib/api/resources';
@@ -80,6 +81,26 @@ export const addBlackout = async (_previous: ManageFormState, formData: FormData
   }
 
   revalidateVenue(venueId);
+  return { ok: true };
+};
+
+export const markNoShow = async (_previous: ManageFormState, formData: FormData): Promise<ManageFormState> => {
+  const session = await auth();
+  if (!session?.courteUserId) redirect('/');
+
+  const venueId = readFormId(formData, 'venueId');
+  if (venueId === null) return { error: MALFORMED_ID_ERROR };
+  const bookingId = readFormId(formData, 'bookingId');
+  if (bookingId === null) return { error: MALFORMED_ID_ERROR };
+
+  try {
+    await markNoShowRequest(session.courteUserId, venueId, { bookingId });
+  } catch (error) {
+    if (error instanceof ApiError) return { error: error.toFormMessage() };
+    throw error;
+  }
+
+  revalidatePath(`/manage/${venueId}`);
   return { ok: true };
 };
 

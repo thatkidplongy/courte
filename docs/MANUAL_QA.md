@@ -207,6 +207,30 @@ check.
 L7 is the one worth re-running after any change to the reviews service: a review written against
 a stranger's booking would attach a rating to a venue the author never visited.
 
+## M — Analytics, staff and no-shows
+
+Seed data has no bookings or payments, so the empty states come first — they are the ones a real
+venue sees on day one.
+
+| #   | Step                                                          | Expected                                                                                 |
+| --- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| M1  | Open `/manage/2` on a fresh seed                              | Revenue panel says nothing collected; **no trend tags at all** (both windows are zero)   |
+| M2  | Record a payment, reload                                      | Revenue chart draws; "Collected this month" grows a trend tag                            |
+| M3  | A figure that was zero last period and is not now             | **"up from nothing"** in words — never "∞%" or "+100%"                                   |
+| M4  | A confirmed booking in the next 24 hours                      | **No-show** button in the last column                                                    |
+| M5  | Click it                                                      | Row status becomes **No show**; the button withdraws (the outcome is no longer open)     |
+| M6  | `/manage/:id/staff` as an owner                               | Your own row is marked **you** and has **no Remove** button                              |
+| M7  | Add a colleague by an email that has signed in before         | They appear as Staff; posting the same address with a different role changes it          |
+| M8  | Add an email nobody has signed in with                        | Refused — "Ask them to sign in once first". No shell account is created                  |
+| M9  | As the **sole owner**, post your own email with `role: staff` | Refused — "A venue must keep at least one owner." This is the lockout path, not `DELETE` |
+| M10 | Same, once a second owner exists                              | Allowed                                                                                  |
+| M11 | `/manage/:id/staff` as **staff**                              | "Only an owner can see or change who works here" — not a 403 error page                  |
+
+M9 is the row worth re-running after any change to the staff service. It was reachable during
+development: a sole owner demoted themselves through the _add_ endpoint and locked every
+administrative action out of that venue permanently, with no recovery short of a hand-written
+UPDATE.
+
 ## I — Jobs (now in the API process)
 
 There is nothing to curl. `@nestjs/schedule` runs all three inside `apps/api`: hold sweep every
@@ -251,7 +275,7 @@ caller learns nothing about whether the id was even valid.
 pnpm test && pnpm typecheck && pnpm lint && pnpm build
 ```
 
-118 unit tests in `apps/api` and 98 in `apps/web`. Two boundary lints must hold: domain code importing Nest,
+132 unit tests in `apps/api` and 102 in `apps/web`. Two boundary lints must hold: domain code importing Nest,
 Express or a driver fails, and **anything in `apps/web` importing `pg` or an ORM fails** — that
 second rule is what keeps the web app from quietly growing a second connection pool.
 
@@ -281,7 +305,7 @@ Things a tester should NOT expect to find, so their absence isn't mistaken for a
   catching that needs an onError handler and so a client component.
 - **Notifications** — waitlist offers appear in-app only; no email/SMS.
 - **Google OAuth** — pending real credentials; dev sign-in is the local path.
-- **Integration tests in CI, deploy** — not yet set up. The 118 API unit tests cover the domain
+- **Integration tests in CI, deploy** — not yet set up. The 132 API unit tests cover the domain
   core; nothing yet exercises the HTTP surface automatically, which is a bigger gap after
   ADR 0004 than before it, because the controller/service layer is new code.
 - **Rate limiting** — `BACKEND_STANDARDS.md` requires it on auth endpoints. `POST /v1/identities`

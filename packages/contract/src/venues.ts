@@ -58,15 +58,40 @@ export type VenueBookingRow = {
   playEndIso: string;
 };
 
+/**
+ * A figure beside the same figure over the preceding window of equal length.
+ *
+ * `changePercent` is null when there is no meaningful percentage: growth from a zero baseline is
+ * not "infinite%", it is "up from nothing", and the screen must say so in words. Both zero is a
+ * genuine 0%.
+ */
+export type Trend = {
+  current: number;
+  previous: number;
+  changePercent: number | null;
+  direction: 'up' | 'down' | 'flat';
+};
+
 export type VenueDashboardResponse = {
   venueId: number;
   venueName: string;
   venueTimezone: string;
+  /** What the caller may do here, so the console shows only the controls their role allows. */
+  role: VenueRole;
   stats: {
     bookingsToday: number;
     upcomingWeek: number;
     collectedThisMonthCents: number;
   };
+  /** Each headline figure against the window before it. Absent from the stats block above so
+   *  a consumer that ignores trends is unaffected. */
+  trends: {
+    bookingsToday: Trend;
+    upcomingWeek: Trend;
+    collectedThisMonthCents: Trend;
+  };
+  /** Money taken per venue-local day over the reporting window. Gap-free: a quiet day is a zero. */
+  revenueByDay: Array<{ date: string; collectedCents: number }>;
   bookings: VenueBookingRow[];
   courts: Array<{ id: number; name: string }>;
   /**
@@ -118,3 +143,31 @@ export type RecordPaymentResponse = {
   method: PaymentMethod;
   amountCents: number;
 };
+
+export const markNoShowBodySchema = z.object({
+  bookingId: idSchema,
+});
+
+export type MarkNoShowBody = z.infer<typeof markNoShowBodySchema>;
+
+/** Who works here. The email is shown to owners only, which is who this endpoint is gated to. */
+export type VenueStaffMember = {
+  userId: number;
+  name: string;
+  email: string;
+  role: VenueRole;
+  /** True for the caller's own row, so the console can stop them removing themselves. */
+  isSelf: boolean;
+};
+
+/**
+ * Staff are added by email, not by user id: an owner knows the address of the person they are
+ * hiring and has no way to discover an internal id. The API resolves it, and refuses an address
+ * that has never signed in rather than creating a shell account nobody controls.
+ */
+export const addVenueMemberBodySchema = z.object({
+  email: z.email().max(320),
+  role: z.enum(VENUE_ROLES),
+});
+
+export type AddVenueMemberBody = z.infer<typeof addVenueMemberBodySchema>;

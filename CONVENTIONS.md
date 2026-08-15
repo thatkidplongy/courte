@@ -60,8 +60,7 @@ rail carries Overview and Courts & pricing, and will carry the mockup's other fi
 when they have routes. A nav item that navigates nowhere makes the whole rail untrustworthy,
 so the list in `lib/venueNav.ts` grows as the routes do.
 
-Two more, for the record: the dashboard has no period-over-period deltas and no revenue time
-series (both need aggregate queries that do not exist yet), and the booking summary panel shows
+One more, for the record: the booking summary panel shows
 an hourly rate rather than a total, because the total is resolved server-side at checkout where
 a booking crossing a peak boundary is priced per segment.
 
@@ -221,6 +220,53 @@ the owner's friend outranks a venue with two hundred reviews averaging 4.7.
 
 A review author is shown by first name, or the local part of their email when they have no name
 — never the full address. The venue page is public.
+
+## Venue roles
+
+Roles attach to a **(user, venue) pair**, never to a user globally: the same account is a player
+everywhere, may own one venue and work the desk at another. `requireVenueAction` resolves every
+"can this user do X here?" question, and is called inside each service method rather than only at
+the route — a guard protects routing, never the action.
+
+Staff run the desk: walk-ins, payments, blackouts, no-shows. Owners can also change what the
+venue sells and who works there.
+
+**A venue must always keep at least one owner**, and `assertOwnerRemains` is the single place
+that rule lives, because two different writes can break it:
+
+- removing an owner, and
+- **demoting one.** `addStaff` is an upsert, so posting an existing owner's email with
+  `role: 'staff'` rewrites their row. A sole owner could lock themselves out in one request —
+  and since `manageStaff` is owner-only, nobody could ever appoint a replacement. It was
+  reachable until this rule was shared between both paths, and it is the reason the function
+  takes the _next_ role rather than just "is this a removal".
+
+Two more asymmetries worth keeping straight:
+
+- A **non-member** gets `NotFoundError`, not `NotPermittedError` — an outsider probing
+  `/manage/<id>` must not be able to tell a real venue from a fabricated one. `NotPermittedError`
+  is for someone already inside, where hiding existence is pointless.
+- An owner **cannot remove themselves**. It is refused separately from the last-owner rule, with
+  a message saying to ask another owner, because the two have different remedies.
+
+## Dashboard analytics
+
+No new tables. Everything the console reports is derived from bookings and the payment ledger.
+
+- **Deltas re-run the same query** over the preceding window of equal length rather than adding a
+  second query that could drift from the first. Yesterday against today, last week against next,
+  last month against this.
+- **`buildTrend` is pure and pinned by tests**, because the awkward cases are arithmetic: growth
+  from a zero baseline has _no percentage_ — it is not "∞%" and not "+100%" — so `changePercent`
+  is null and the screen says "up from nothing" in words. Both windows zero is a genuine 0%, and
+  `TrendTag` renders nothing at all in that case rather than three "no change" tags on a
+  dashboard's first day.
+- **Both charts are gap-free.** `generate_series` LEFT JOINed to the data, so a day or hour with
+  nothing is a zero rather than a missing key — otherwise a chart cannot tell "nobody came" from
+  "no data" and draws a line straight through the gap.
+- **Revenue groups on the venue-local date.** A Manila venue taking a payment at 09:00 would land
+  on the previous day if this grouped in UTC, and every daily total would be wrong by whatever
+  came in before 08:00.
 
 ## Flex and grid minimums
 

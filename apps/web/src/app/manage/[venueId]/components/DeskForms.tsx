@@ -186,3 +186,38 @@ export const PaymentForm = ({ venueId, bookingId, outstandingPesos, action }: Pa
     </form>
   );
 };
+
+/**
+ * The desk's record of somebody who did not turn up. A button rather than a dropdown of
+ * outcomes: it is the only status the desk sets by hand, and the rest are consequences of
+ * actions elsewhere.
+ *
+ * No confirm dialog, deliberately. It is reversible by the venue at the counter and a modal
+ * for a single-click record slows down the one moment the desk is busiest.
+ */
+export const NoShowForm = ({
+  venueId,
+  bookingId,
+  action,
+}: {
+  venueId: number;
+  bookingId: number;
+  action: DeskAction;
+}) => {
+  const [state, formAction, isPending] = useActionState(action, {});
+
+  return (
+    <form action={formAction} className="flex flex-col gap-1">
+      <input type="hidden" name="venueId" value={venueId} />
+      <input type="hidden" name="bookingId" value={bookingId} />
+      <Button type="submit" variant="outline" size="sm" disabled={isPending}>
+        {isPending ? 'Marking…' : 'No-show'}
+      </Button>
+      {state.error ? (
+        <span role="alert" className="text-destructive text-[11px] font-medium">
+          {state.error}
+        </span>
+      ) : null}
+    </form>
+  );
+};

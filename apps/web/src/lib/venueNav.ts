@@ -8,6 +8,7 @@ import type { NavLink } from '@/components/molecules/NavLinks';
 const VENUE_SECTIONS = [
   { segment: '', label: 'Overview' },
   { segment: 'courts', label: 'Courts & pricing' },
+  { segment: 'staff', label: 'Staff' },
 ] as const;
 
 export const buildVenueNav = (venueId: number): NavLink[] =>

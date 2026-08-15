@@ -107,3 +107,13 @@ Two related traps in the same file: a `declare module` block only _augments_ if 
 imports that module — otherwise it declares a new ambient module and silently does nothing. And
 `sub` in a JWT is a string by RFC 7519, so the numeric user id is stringified when minting and
 parsed when verifying.
+
+## Turbopack does not always pick up a new route folder
+
+Creating `app/…/staff/page.tsx` while `next dev` is running gave a **404 from the route itself**
+— no request reached the API, and the page's own `notFound()` was never involved, so the obvious
+suspects (a bad id parse, a 404 from the service) were all red herrings. Restarting the dev
+server fixed it.
+
+If a brand-new route 404s and the server log shows the request never left the web app, restart
+before debugging the page.

@@ -255,3 +255,68 @@ export const insertVenuePayment = async (params: PaymentInsert): Promise<boolean
 
   return rows.length > 0;
 };
+
+/**
+ * Money taken per venue-local day, gap-free.
+ *
+ * `generate_series` over the days LEFT JOINed to the ledger, for the same reason the hour
+ * histogram does it: a day with no payments must be a zero, not a missing key, or the chart
+ * cannot tell "nobody paid" from "no data" and draws a line through the gap.
+ *
+ * Grouped on the payment's VENUE-LOCAL date. A venue in Manila taking a payment at 09:00 on the
+ * 3rd would land on the 2nd if this grouped in UTC, and every daily total would be wrong by
+ * whatever was taken before 08:00.
+ *
+ * Refunds subtract, matching `"BookingPaymentState"`: this is what the venue actually kept, not
+ * what it invoiced.
+ */
+export const getVenueRevenueByDay = async (
+  venueId: number,
+  from: Date,
+  to: Date,
+  timezone: string
+): Promise<Array<{ date: string; collectedCents: number }>> => {
+  const rows = await query<{ date: string; collected_cents: string }>(
+    `
+    WITH days AS (
+      SELECT generate_series(
+        ($2::timestamptz AT TIME ZONE $4)::date,
+        ($3::timestamptz AT TIME ZONE $4)::date,
+        interval '1 day'
+      )::date AS day
+    )
+    SELECT
+      days.day::text AS date,
+      COALESCE(taken.collected_cents, 0) AS collected_cents
+    FROM days
+    LEFT JOIN (
+      SELECT
+        (p.created_at AT TIME ZONE $4)::date AS day,
+        SUM(CASE WHEN p.kind = 'charge' THEN p.amount_cents ELSE -p.amount_cents END) AS collected_cents
+      FROM "Payment" p
+      JOIN "Booking" b ON b.id = p.booking_id
+      WHERE b.venue_id = $1 AND p.created_at >= $2 AND p.created_at < $3
+      GROUP BY 1
+    ) taken ON taken.day = days.day
+    ORDER BY days.day
+    `,
+    [venueId, from.toISOString(), to.toISOString(), timezone]
+  );
+
+  return rows.map(row => ({ date: row.date, collectedCents: Number(row.collected_cents) }));
+};
+
+/** Marks a booking as a no-show. Venue-scoped in SQL, so a booking at another venue finds nothing. */
+export const markBookingNoShow = async (venueId: number, bookingId: number): Promise<boolean> => {
+  const rows = await query<{ id: number }>(
+    `
+    UPDATE "Booking"
+    SET status = 'no_show'
+    WHERE id = $1 AND venue_id = $2 AND status IN ('pending', 'confirmed')
+    RETURNING id
+    `,
+    [bookingId, venueId]
+  );
+
+  return rows.length > 0;
+};

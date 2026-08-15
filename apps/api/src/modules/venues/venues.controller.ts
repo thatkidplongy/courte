@@ -1,17 +1,22 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
 import {
   addBlackoutBodySchema,
+  addVenueMemberBodySchema,
   dashboardQuerySchema,
+  markNoShowBodySchema,
   recordPaymentBodySchema,
   recordWalkInBodySchema,
   type AddBlackoutBody,
+  type AddVenueMemberBody,
   type DashboardQuery,
+  type MarkNoShowBody,
   type RecordPaymentBody,
   type RecordPaymentResponse,
   type RecordWalkInBody,
   type RecordWalkInResponse,
   type VenueDashboardResponse,
   type VenueMembershipSummary,
+  type VenueStaffMember,
 } from '@courte/contract';
 
 import { JwtAuthGuard } from '@/common/auth.guards';
@@ -72,5 +77,45 @@ export class VenuesController {
     @Body(validateWith(recordPaymentBodySchema)) body: RecordPaymentBody
   ): Promise<RecordPaymentResponse> {
     return this.venues.recordPayment(userId, parseId(venueId, 'venueId'), body);
+  }
+
+  /**
+   * The booking is in the body rather than the path because this route is venue-scoped: the
+   * venue is what authorises the action, and putting the booking in the path would suggest the
+   * booking does.
+   */
+  @Post(':venueId/no-shows')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  markNoShow(
+    @CurrentUserId() userId: number,
+    @Param('venueId') venueId: string,
+    @Body(validateWith(markNoShowBodySchema)) body: MarkNoShowBody
+  ): Promise<void> {
+    return this.venues.markNoShow(userId, parseId(venueId, 'venueId'), body.bookingId);
+  }
+
+  @Get(':venueId/staff')
+  listStaff(@CurrentUserId() userId: number, @Param('venueId') venueId: string): Promise<VenueStaffMember[]> {
+    return this.venues.listStaff(userId, parseId(venueId, 'venueId'));
+  }
+
+  @Post(':venueId/staff')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  addStaff(
+    @CurrentUserId() userId: number,
+    @Param('venueId') venueId: string,
+    @Body(validateWith(addVenueMemberBodySchema)) body: AddVenueMemberBody
+  ): Promise<void> {
+    return this.venues.addStaff(userId, parseId(venueId, 'venueId'), body);
+  }
+
+  @Delete(':venueId/staff/:memberId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeStaff(
+    @CurrentUserId() userId: number,
+    @Param('venueId') venueId: string,
+    @Param('memberId') memberId: string
+  ): Promise<void> {
+    return this.venues.removeStaff(userId, parseId(venueId, 'venueId'), parseId(memberId, 'memberId'));
   }
 }

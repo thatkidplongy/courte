@@ -1,29 +1,34 @@
 import { DateTime } from 'luxon';
 import { notFound, redirect } from 'next/navigation';
 
-import type { VenueBookingRow } from '@courte/contract';
+import type { Trend, VenueBookingRow } from '@courte/contract';
 
 import { auth } from '@/auth';
 import { FieldLabel } from '@/components/atoms/FieldLabel';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
+import { TrendTag } from '@/components/atoms/TrendTag';
 import { HourHistogram } from '@/components/molecules/HourHistogram';
 import { Panel } from '@/components/molecules/Panel';
+import { RevenueChart } from '@/components/molecules/RevenueChart';
 import { BOOKING_STATUS_LABELS, BOOKING_STATUS_TONES } from '@/consts';
 import { isNotFound } from '@/lib/api/client';
 import { fetchVenueDashboard } from '@/lib/api/resources';
 import { formatPesos, formatTime } from '@/lib/format';
 import { parseRouteId } from '@/lib/ids';
-import { addBlackout, recordPayment, recordWalkIn } from '@/server-actions/manageVenue';
+import { addBlackout, markNoShow, recordPayment, recordWalkIn } from '@/server-actions/manageVenue';
 
-import { BlackoutForm, PaymentForm, WalkInForm } from './components/DeskForms';
+import { BlackoutForm, NoShowForm, PaymentForm, WalkInForm } from './components/DeskForms';
 
 const SOURCE_LABELS = { online: 'Online', phone: 'Phone', walk_in: 'Walk-in' } as const;
 
-const StatCard = ({ label, value, note }: { label: string; value: string; note: string }) => (
+const StatCard = ({ label, value, note, trend }: { label: string; value: string; note: string; trend: Trend }) => (
   <div className="border-border rounded-md border p-[18px]">
     <FieldLabel>{label}</FieldLabel>
     <p className="mt-3 text-[28px] font-extrabold leading-none tracking-tight">{value}</p>
-    <p className="text-muted-foreground mt-2.5 text-[11.5px] font-semibold">{note}</p>
+    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <p className="text-muted-foreground text-[11.5px] font-semibold">{note}</p>
+      <TrendTag trend={trend} />
+    </div>
   </div>
 );
 
@@ -63,11 +68,18 @@ const BookingRow = ({ booking, venueId, timezone }: BookingRowProps) => {
           <StatusBadge tone="positive">Settled</StatusBadge>
         )}
       </td>
+      <td className="px-5 py-4">
+        {/* Only while the outcome is still open. Marking a booking that is already completed,
+            cancelled or a no-show is not a correction, it is a second claim about the same game. */}
+        {booking.status === 'pending' || booking.status === 'confirmed' ? (
+          <NoShowForm venueId={venueId} bookingId={booking.id} action={markNoShow} />
+        ) : null}
+      </td>
     </tr>
   );
 };
 
-const TABLE_HEADINGS = ['Player', 'Court & time', 'Amount', 'Source', 'Status', 'Payment'] as const;
+const TABLE_HEADINGS = ['Player', 'Court & time', 'Amount', 'Source', 'Status', 'Payment', ''] as const;
 
 type PageProps = {
   params: Promise<{ venueId: string }>;
@@ -90,7 +102,7 @@ const ManageVenuePage = async ({ params }: PageProps) => {
     throw error;
   });
 
-  const { venueTimezone: timezone, stats, bookings, utilisationByHour } = dashboard;
+  const { venueTimezone: timezone, stats, trends, bookings, utilisationByHour, revenueByDay } = dashboard;
   const courtOptions = dashboard.courts;
   const today = DateTime.now().setZone(timezone);
 
@@ -106,18 +118,35 @@ const ManageVenuePage = async ({ params }: PageProps) => {
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <StatCard label="Bookings today" value={String(stats.bookingsToday)} note="Play starting today" />
-        <StatCard label="Upcoming 7 days" value={String(stats.upcomingWeek)} note="Confirmed and pending" />
+        <StatCard
+          label="Bookings today"
+          value={String(stats.bookingsToday)}
+          note="Play starting today"
+          trend={trends.bookingsToday}
+        />
+        <StatCard
+          label="Upcoming 7 days"
+          value={String(stats.upcomingWeek)}
+          note="Confirmed and pending"
+          trend={trends.upcomingWeek}
+        />
         <StatCard
           label="Collected this month"
           value={formatPesos(stats.collectedThisMonthCents)}
           note="Payments less refunds"
+          trend={trends.collectedThisMonthCents}
         />
       </div>
 
-      <Panel className="mt-6" title="Busiest hours" description="Bookings by hour of day, last 30 days">
-        <HourHistogram bars={utilisationByHour} />
-      </Panel>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Panel title="Revenue" description="Collected per day, last 30 days">
+          <RevenueChart days={revenueByDay} />
+        </Panel>
+
+        <Panel title="Busiest hours" description="Bookings by hour of day, last 30 days">
+          <HourHistogram bars={utilisationByHour} />
+        </Panel>
+      </div>
 
       {/* Not a Panel: the table's header row and its own rules run edge to edge, so the
             surface cannot carry the padding a Panel puts on everything inside it. */}

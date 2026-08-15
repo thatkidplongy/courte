@@ -7,11 +7,13 @@ Postgres before it can, and the order to build it in.
 It is written page by page, because that is where the requirements actually are. The schema
 section is downstream of it, not the other way round.
 
-> **Status:** steps 1 to 3 are built — migrations `20260815090000` through
+> **Status:** steps 1 to 4 are built — migrations `20260815090000` through
 > `20260815110000`. Court surface is an enum, venues carry a profile, photos and amenities are
 > real tables filtered in SQL, and price rules are date-scoped, deterministic and owner-editable
 > from the venue console. Reviews are anchored to bookings, the venue average is a view, and
-> "top rated" is derived from thresholds rather than stored. Steps 4 to 8 remain.
+> "top rated" is derived from thresholds rather than stored. The console reports revenue and
+> period-over-period deltas, owners administer staff, and the desk can mark a no-show.
+> Steps 5 to 8 remain.
 >
 > Two conventions changed after step 2, adopted from the BYB platform services and applied
 > across every migration: **tables are PascalCase singular and always quoted**, and **keys are
@@ -131,11 +133,10 @@ under the screen it mirrors.
 fabricated one. Every window boundary is computed in the venue's own timezone. Three writes
 exist: walk-in, blackout, payment.
 
-**Missing — this is the biggest gap in the product.** The rail lists six sections and routes to
-one. The permission map already names the actions (`manageCourts`, `manageHours`,
-`managePricing`, `manageStaff`, `viewRevenue`, `markNoShow`); not one has an endpoint. An owner
-cannot change a price, add a court, edit opening hours, add staff, or mark a no-show. Every one
-of those is a seed-only fact today.
+**Built in steps 2 and 4.** Every action the permission map named now has an endpoint:
+`manageCourts`, `manageHours` and `managePricing` in step 2; `manageStaff`, `viewRevenue` and
+`markNoShow` in step 4. What is left of the mockup's rail is the sections with no product behind
+them yet — customers, settings, and the passes that step 6 introduces.
 
 ---
 
@@ -465,7 +466,7 @@ Ordered by how much each step stops a page from lying.
 | 1   | **Done** — venue identity: surface enum, profile, photos, amenities, soft delete | M1, M2, M3, M6 | 1a, 1b, 1c    |
 | 2   | **Done** — pricing and hours: date-scoped rules, ambiguity fix, owner CRUD       | M5a, M5c, M5d  | 1f            |
 | 3   | **Done** — reviews and ratings: table, view, `sort=rating`, top-rated badge      | M4             | 1b, 1c        |
-| 4   | Dashboard analytics and staff — revenue series, deltas, no-show, staff admin     | —              | 1f            |
+| 4   | **Done** — analytics and staff: revenue series, deltas, no-show, staff admin     | —              | 1f            |
 | 5   | Location — search areas and browser geolocation                                  | M7             | 1a, 1b        |
 | 6   | Passes and member pricing                                                        | M5b            | 1c, 1f        |
 | 7   | Notifications                                                                    | M8             | cross-cutting |

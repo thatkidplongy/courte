@@ -2,6 +2,7 @@ import 'server-only';
 
 import type {
   AddBlackoutBody,
+  AddVenueMemberBody,
   Amenity,
   BookingSummary,
   CourtAvailabilityResponse,
@@ -13,6 +14,7 @@ import type {
   CreateSeriesBody,
   CreateSeriesResponse,
   JoinWaitlistBody,
+  MarkNoShowBody,
   OpeningWindowSummary,
   OwnedCourt,
   Paginated,
@@ -32,6 +34,7 @@ import type {
   VenueDashboardResponse,
   VenueMembershipSummary,
   VenueScheduleResponse,
+  VenueStaffMember,
   WaitlistEntry,
 } from '@courte/contract';
 
@@ -148,6 +151,19 @@ export const recordPayment = (
   body: RecordPaymentBody
 ): Promise<RecordPaymentResponse> =>
   apiFetch<RecordPaymentResponse>(`/venues/${venueId}/payments`, { method: 'POST', body, userId });
+
+export const markNoShow = (userId: number, venueId: number, body: MarkNoShowBody): Promise<void> =>
+  apiFetch<void>(`/venues/${venueId}/no-shows`, { method: 'POST', body, userId });
+
+/** Who works here. Owner-only on the API, so a staff caller gets a 403 rather than a list. */
+export const fetchVenueStaff = (userId: number, venueId: number): Promise<VenueStaffMember[]> =>
+  apiFetch<VenueStaffMember[]>(`/venues/${venueId}/staff`, { userId, revalidate: 0 });
+
+export const addVenueMember = (userId: number, venueId: number, body: AddVenueMemberBody): Promise<void> =>
+  apiFetch<void>(`/venues/${venueId}/staff`, { method: 'POST', body, userId });
+
+export const removeVenueMember = (userId: number, venueId: number, memberId: number): Promise<void> =>
+  apiFetch<void>(`/venues/${venueId}/staff/${memberId}`, { method: 'DELETE', userId });
 
 /**
  * Owner-side inventory. Every path is nested under the venue, because that is what the API
