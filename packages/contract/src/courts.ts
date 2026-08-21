@@ -13,6 +13,7 @@ import {
   type CourtSurface,
   type Sport,
 } from './consts';
+import { localTimeSchema } from './pricing';
 import type { ReviewSummary, VenueRating } from './reviews';
 import type { Amenity, VenuePhoto } from './venues';
 
@@ -41,9 +42,9 @@ const amenitySlugsSchema = z.preprocess(
 );
 
 /**
- * Every filter here is resolved in SQL. That is deliberate: a filter applied after the page is
- * fetched would make `total` describe one set of courts and `data` another, and the pager
- * would count pages that do not exist.
+ * Every filter here is resolved in SQL, with one named exception below. That is deliberate: a
+ * filter applied after the page is fetched would make `total` describe one set of courts and
+ * `data` another, and the pager would count pages that do not exist.
  */
 export const searchCourtsQuerySchema = z.object({
   /** Absent means every sport — the marketplace default. A card still names its own sport. */
@@ -55,6 +56,14 @@ export const searchCourtsQuerySchema = z.object({
   maxRatePerHourCents: z.coerce.number().int().positive().optional(),
   sort: z.enum(COURT_SORTS).default('distance'),
   date: isoDateSchema.optional(),
+  /**
+   * The named exception: a wall-clock start the player wants, like `18:00`, keeping only courts
+   * that can actually begin a game then. It cannot be resolved in SQL without a second copy of
+   * the availability rules — opening windows minus bookings minus each court's own buffer, per
+   * ADR 0001 — and a copy is what would drift. The service pays for it by resolving the whole
+   * candidate set before paging, which is why `TIME_FILTER_CANDIDATE_CAP` bounds that set.
+   */
+  time: localTimeSchema.optional(),
   latitude: z.coerce.number().min(-90).max(90).default(SEARCH_DEFAULTS.latitude),
   longitude: z.coerce.number().min(-180).max(180).default(SEARCH_DEFAULTS.longitude),
   radiusMetres: z.coerce.number().int().positive().max(MAX_SEARCH_RADIUS_METRES).default(DEFAULT_SEARCH_RADIUS_METRES),

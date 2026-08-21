@@ -18,6 +18,7 @@ import { buildAmenityLabelMap } from '@/lib/amenities';
 import { fetchAmenities, searchCourts } from '@/lib/api/resources';
 import { buildCourtsHref, clearCourtFilters, countActiveFilters, parseCourtFilters } from '@/lib/courtFilters';
 import type { CourtFilters } from '@/lib/courtFilters';
+import { formatClockLabel } from '@/lib/format';
 import { buildVenuePins } from '@/lib/mapPins';
 
 export const metadata = {
@@ -50,6 +51,7 @@ const ResultsHeader = ({ total, filters }: ResultsHeaderProps) => {
         </h1>
         <p className="text-muted-foreground mt-1.5 text-[12.5px] font-medium">
           {SEARCH_DEFAULTS.label} · {DateTime.fromISO(filters.dateIso).toFormat('cccc, d LLLL')}
+          {filters.time ? ` · from ${formatClockLabel(filters.time)}` : ''}
           {activeCount > 0 ? (
             <>
               {' · '}
@@ -112,6 +114,7 @@ const MarketplacePage = async ({ searchParams }: PageProps) => {
       minRatePerHourCents: filters.minRatePerHourCents,
       maxRatePerHourCents: filters.maxRatePerHourCents,
       sort: filters.sort,
+      time: filters.time,
       radiusMetres: CITY_SEARCH_RADIUS_METRES,
       page: filters.page,
       limit: MARKETPLACE_PAGE_SIZE,
@@ -129,7 +132,12 @@ const MarketplacePage = async ({ searchParams }: PageProps) => {
   return (
     <SearchLayout
       header={
-        <SearchHeaderBar sport={filters.sport} dateIso={filters.dateIso} userName={session?.user?.name ?? null} />
+        <SearchHeaderBar
+          sport={filters.sport}
+          dateIso={filters.dateIso}
+          time={filters.time}
+          userName={session?.user?.name ?? null}
+        />
       }
       rail={<CourtFilterRail filters={filters} amenities={amenities} />}
       map={

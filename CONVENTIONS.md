@@ -268,6 +268,21 @@ No new tables. Everything the console reports is derived from bookings and the p
   on the previous day if this grouped in UTC, and every daily total would be wrong by whatever
   came in before 08:00.
 
+## The time filter
+
+`?time=18:00` keeps the courts that can actually begin a game then, and it is the **one search
+filter not resolved in SQL**. Availability is opening hours minus bookings minus each court's
+own buffer, derived in TypeScript per ADR 0001; expressing that in a WHERE clause would mean a
+second copy of the rule, and the copy is what would drift.
+
+The cost is paid honestly rather than hidden: when a time is given the service takes the whole
+candidate set (bounded by `TIME_FILTER_CANDIDATE_CAP`), derives availability, filters, and pages
+the result in memory, so `total` and `data` still describe the same set. `canStartAt` answers by
+asking `listStartTimes` — a court the filter keeps is a court whose card then shows that chip.
+
+The web side narrows `?time=` to `SEARCH_TIME_OPTIONS` before sending it, so a hand-typed
+`?time=03:07` browses unfiltered instead of buying a full sweep for a value no control offers.
+
 ## Flex and grid minimums
 
 Two bugs of the same shape have been fixed in this repo, so it is worth stating the rule: **a

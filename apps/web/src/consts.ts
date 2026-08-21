@@ -81,6 +81,7 @@ export const ANY_FILTER_VALUE = '';
 export const COURT_FILTER_FIELDS = {
   sport: 'sport',
   date: 'date',
+  time: 'time',
   surface: 'surface',
   amenities: 'amenities',
   minRate: 'minRatePerHourCents',
@@ -88,6 +89,25 @@ export const COURT_FILTER_FIELDS = {
   sort: 'sort',
   page: 'page',
 } as const;
+
+const SEARCH_TIME_FIRST_MINUTE = 6 * 60;
+const SEARCH_TIME_STEP_MINUTES = 30;
+const SEARCH_TIME_SLOT_COUNT = 32;
+
+/**
+ * The starts the search offers, every half hour from 06:00 to 21:30. Courts here open around
+ * six and the last game a venue sells starts before ten, so a wider list would offer times no
+ * court in the city can answer. Half-hourly because that is the smallest increment any court
+ * books in — offering 18:15 to a court that starts on the hour is offering a guaranteed miss.
+ *
+ * It is also the allowlist `parseCourtFilters` narrows `?time=` against, so this array is the
+ * only set of values the API will ever be asked to sweep for.
+ */
+export const SEARCH_TIME_OPTIONS: string[] = Array.from({ length: SEARCH_TIME_SLOT_COUNT }, (_, index) => {
+  const minutes = SEARCH_TIME_FIRST_MINUTE + index * SEARCH_TIME_STEP_MINUTES;
+  const hours = Math.floor(minutes / 60);
+  return `${String(hours).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+});
 
 /** The sort toggle has room for a word, not a sentence — `COURT_SORT_LABELS` is for prose. */
 export const COURT_SORT_SHORT_LABELS: Record<CourtSort, string> = {

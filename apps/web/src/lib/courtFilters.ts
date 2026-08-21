@@ -11,7 +11,7 @@ import {
   type Sport,
 } from '@courte/contract';
 
-import { COURT_FILTER_FIELDS } from '@/consts';
+import { COURT_FILTER_FIELDS, SEARCH_TIME_OPTIONS } from '@/consts';
 
 /**
  * Search params arrive as arbitrary strings — anyone can type `?sport=chess`. These narrow them
@@ -46,6 +46,7 @@ const parseAmenities = (value: string | undefined): string[] => {
 export type RawCourtFilters = {
   sport?: string;
   date?: string;
+  time?: string;
   surface?: string;
   amenities?: string;
   minRatePerHourCents?: string;
@@ -63,8 +64,17 @@ export type CourtFilters = {
   maxRatePerHourCents?: number;
   sort: CourtSort;
   dateIso: string;
+  /** A wall-clock start like `18:00`, or absent for any time of day. */
+  time?: string;
   page: number;
 };
+
+/**
+ * Only a time the pickers actually offer survives. The filter costs the API a full candidate
+ * sweep, so `?time=03:07` — a value no control can produce — is dropped rather than paid for.
+ */
+const parseTime = (value: string | undefined): string | undefined =>
+  value !== undefined && SEARCH_TIME_OPTIONS.includes(value) ? value : undefined;
 
 const parsePage = (value: string | undefined): number => {
   const page = Number(value);
@@ -89,6 +99,7 @@ export const parseCourtFilters = (raw: RawCourtFilters, todayIso: string): Court
   maxRatePerHourCents: parseRate(raw.maxRatePerHourCents, PRICE_FILTER_MAX_CENTS),
   sort: isSort(raw.sort) ? raw.sort : 'distance',
   dateIso: raw.date ?? todayIso,
+  time: parseTime(raw.time),
   page: parsePage(raw.page),
 });
 
@@ -102,6 +113,7 @@ export const buildCourtsHref = (filters: CourtFilters, overrides: Partial<CourtF
   const query = new URLSearchParams({ [COURT_FILTER_FIELDS.date]: merged.dateIso });
 
   if (merged.sport) query.set(COURT_FILTER_FIELDS.sport, merged.sport);
+  if (merged.time) query.set(COURT_FILTER_FIELDS.time, merged.time);
   if (merged.surface) query.set(COURT_FILTER_FIELDS.surface, merged.surface);
   if (merged.amenities.length > 0) query.set(COURT_FILTER_FIELDS.amenities, merged.amenities.join(','));
   if (merged.minRatePerHourCents) query.set(COURT_FILTER_FIELDS.minRate, String(merged.minRatePerHourCents));
@@ -120,6 +132,7 @@ export const buildCourtsHref = (filters: CourtFilters, overrides: Partial<CourtF
 export const countActiveFilters = (filters: CourtFilters): number =>
   [
     filters.sport,
+    filters.time,
     filters.surface,
     filters.amenities.length > 0 || undefined,
     filters.minRatePerHourCents,
@@ -133,6 +146,7 @@ export const countActiveFilters = (filters: CourtFilters): number =>
 export const clearCourtFilters = (filters: CourtFilters): CourtFilters => ({
   ...filters,
   sport: undefined,
+  time: undefined,
   surface: undefined,
   amenities: [],
   minRatePerHourCents: undefined,

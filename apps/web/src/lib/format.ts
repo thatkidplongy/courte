@@ -25,3 +25,12 @@ export const formatHourLabel = (hour: number): string => {
   const twelve = hour % 12 === 0 ? 12 : hour % 12;
   return `${twelve} ${suffix}`;
 };
+
+/**
+ * "6:00 PM" from "18:00". A wall-clock time carrying no date and no zone — the search asks for
+ * a time of day, and the venue it eventually matches is the thing that owns a timezone.
+ */
+export const formatClockLabel = (time: string): string => {
+  const parsed = DateTime.fromFormat(time, 'HH:mm');
+  return parsed.isValid ? parsed.toFormat('h:mm a') : time;
+};

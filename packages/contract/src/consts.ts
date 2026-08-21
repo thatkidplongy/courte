@@ -31,6 +31,14 @@ export const MAX_SEARCH_RADIUS_METRES = 50_000;
 export const CITY_SEARCH_RADIUS_METRES = 20_000;
 
 /**
+ * How many courts a `time`-filtered search will resolve availability for before paging. The
+ * filter needs every candidate's real free intervals, so the page cannot be taken in SQL
+ * first — this is the ceiling on that work, and comfortably above one city's inventory.
+ * A search that hits it returns the nearest N, which is the set a player would look at anyway.
+ */
+export const TIME_FILTER_CANDIDATE_CAP = 200;
+
+/**
  * How a court is enclosed. `covered` is roofed but open at the sides — the case a boolean
  * could not carry, and the one that decides whether a game survives an afternoon shower.
  */

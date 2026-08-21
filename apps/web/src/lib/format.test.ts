@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDay, formatDistance, formatHourLabel, formatPesos, formatTime, formatWholePesos } from './format';
+import {
+  formatClockLabel,
+  formatDay,
+  formatDistance,
+  formatHourLabel,
+  formatPesos,
+  formatTime,
+  formatWholePesos,
+} from './format';
 
 describe('formatPesos', () => {
   it('renders cents as pesos with two decimals', () => {
@@ -76,5 +84,23 @@ describe('formatHourLabel', () => {
 
   it('keeps a morning hour in the morning', () => {
     expect(formatHourLabel(6)).toBe('6 AM');
+  });
+});
+
+describe('formatClockLabel', () => {
+  it('turns a 24-hour time into the twelve-hour form the search bar shows', () => {
+    expect(formatClockLabel('18:00')).toBe('6:00 PM');
+  });
+
+  it('keeps the half hour', () => {
+    expect(formatClockLabel('06:30')).toBe('6:30 AM');
+  });
+
+  it('reads midnight as 12:00 AM rather than 0:00 AM', () => {
+    expect(formatClockLabel('00:00')).toBe('12:00 AM');
+  });
+
+  it('hands back anything it cannot parse, so a bad value never renders as "Invalid DateTime"', () => {
+    expect(formatClockLabel('tea time')).toBe('tea time');
   });
 });

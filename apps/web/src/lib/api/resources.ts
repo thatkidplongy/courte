@@ -62,6 +62,7 @@ export const searchCourts = (params: {
   minRatePerHourCents?: number;
   maxRatePerHourCents?: number;
   sort?: CourtSort;
+  time?: string;
   radiusMetres?: number;
   page?: number;
   limit?: number;
@@ -73,6 +74,7 @@ export const searchCourts = (params: {
   if (params.minRatePerHourCents) query.set('minRatePerHourCents', String(params.minRatePerHourCents));
   if (params.maxRatePerHourCents) query.set('maxRatePerHourCents', String(params.maxRatePerHourCents));
   if (params.sort) query.set('sort', params.sort);
+  if (params.time) query.set('time', params.time);
   if (params.radiusMetres) query.set('radiusMetres', String(params.radiusMetres));
   if (params.page) query.set('page', String(params.page));
   if (params.limit) query.set('limit', String(params.limit));

@@ -8,11 +8,14 @@ import { Avatar } from '@/components/atoms/Avatar';
 import { CourtMark, PinIcon, SearchIcon } from '@/components/atoms/Icon';
 import { DateField } from '@/components/molecules/DateField';
 import { SelectField, type SelectOption } from '@/components/molecules/SelectField';
-import { ANY_FILTER_VALUE, COURT_FILTER_FIELDS, SPORT_LABELS } from '@/consts';
+import { ANY_FILTER_VALUE, COURT_FILTER_FIELDS, SEARCH_TIME_OPTIONS, SPORT_LABELS } from '@/consts';
+import { formatClockLabel } from '@/lib/format';
 
 type SearchHeaderBarProps = {
   sport: Sport | undefined;
   dateIso: string;
+  /** The wall-clock start being filtered on, or undefined for any time of day. */
+  time: string | undefined;
   /** The signed-in user's display name, or null when nobody is signed in. */
   userName: string | null;
 };
@@ -20,6 +23,11 @@ type SearchHeaderBarProps = {
 const SPORT_OPTIONS: SelectOption[] = [
   { value: ANY_FILTER_VALUE, label: 'All sports' },
   ...SPORTS.map(sport => ({ value: sport, label: SPORT_LABELS[sport] })),
+];
+
+const TIME_OPTIONS: SelectOption[] = [
+  { value: ANY_FILTER_VALUE, label: 'Any time' },
+  ...SEARCH_TIME_OPTIONS.map(time => ({ value: time, label: formatClockLabel(time) })),
 ];
 
 /**
@@ -44,7 +52,7 @@ const BARE_CONTROL = 'h-auto w-full justify-between border-0 p-0 text-[13px] fon
  * once you are searching, the search *is* the navigation, which is why /courts renders this and
  * the site header lives only on the pages that are still selling something.
  */
-export const SearchHeaderBar = ({ sport, dateIso, userName }: SearchHeaderBarProps) => (
+export const SearchHeaderBar = ({ sport, dateIso, time, userName }: SearchHeaderBarProps) => (
   <header className="border-ink flex h-auto flex-wrap items-center gap-4 border-b-2 px-5 py-3 lg:h-[66px] lg:flex-nowrap lg:gap-5 lg:py-0">
     <Link href="/" className="flex items-center gap-2.5">
       <CourtMark className="text-primary h-5 w-5" />
@@ -75,6 +83,15 @@ export const SearchHeaderBar = ({ sport, dateIso, userName }: SearchHeaderBarPro
 
       <SearchCell label="Date">
         <DateField name={COURT_FILTER_FIELDS.date} defaultValue={dateIso} triggerClassName={BARE_CONTROL} />
+      </SearchCell>
+
+      <SearchCell label="Time">
+        <SelectField
+          name={COURT_FILTER_FIELDS.time}
+          defaultValue={time ?? ANY_FILTER_VALUE}
+          options={TIME_OPTIONS}
+          className={BARE_CONTROL}
+        />
       </SearchCell>
 
       <button
