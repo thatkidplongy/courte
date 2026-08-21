@@ -26,18 +26,22 @@ Two services now: the API on `:4000`, the web app on `:3000`. `pnpm dev` runs bo
 app renders but every list is empty or errors, confirm the API is up with
 `curl localhost:4000/health`.
 
-Sign in at `http://localhost:3000/api/auth/signin` → "Dev sign-in (any email)".
+Sign in with the header's "Sign in" button → "Dev sign-in (any email)". Outside production the
+button goes to that chooser rather than to Google, because the Google credentials in `.env.local`
+are placeholders and Google answers a real client id check with `401 invalid_client`. The chooser
+is also reachable directly at `http://localhost:3000/api/auth/signin`.
 To reset to pristine seed data at any point: `docker compose down -v && docker compose up -d && pnpm db:migrate`.
 
 ## A — Landing page
 
-| #   | Do                                     | Expect                                                                                         |
-| --- | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| A1  | Open `/` signed out                    | Dark hero, floating search bar, pickleball preselected, today's date, location reads Cebu City |
-| A2  | "Top courts near you"                  | At most four cards — a teaser, not the catalogue — beside a "Browse every court →" link        |
-| A3  | Search badminton, tomorrow             | Leaves the hero and lands on `/courts?sport=badminton&date=…` with the sport already applied   |
-| A4  | Header "Find a court", footer the same | Both go to `/courts`, never back to `/`                                                        |
-| A5  | Stats band under the teaser            | Counts describe the cards actually shown, not hardcoded numbers                                |
+| #   | Do                                     | Expect                                                                                                                                   |
+| --- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | Open `/` signed out                    | Dark hero running the full canvas, four-field search bar (sport, location, date, time), pickleball preselected, today's date, "Any time" |
+| A2  | "Top courts near you"                  | At most five cards — a teaser, not the catalogue — beside a "View all →" link                                                            |
+| A3  | Search badminton, tomorrow             | Leaves the hero and lands on `/courts?sport=badminton&date=…` with the sport already applied                                             |
+| A4  | Header "Find a court", footer the same | Both go to `/courts`, never back to `/`                                                                                                  |
+| A5  | Stats band under the teaser            | Counts describe the cards actually shown, not hardcoded numbers                                                                          |
+| A6  | "Play any sport, anywhere"             | Seven tiles: six sports plus a dashed "More" that opens the unfiltered marketplace                                                       |
 
 ## A′ — Marketplace (`/courts`)
 
@@ -279,11 +283,24 @@ pnpm test && pnpm typecheck && pnpm lint && pnpm build
 Express or a driver fails, and **anything in `apps/web` importing `pg` or an ORM fails** — that
 second rule is what keeps the web app from quietly growing a second connection pool.
 
+## N — Time filter and policy pages
+
+| #   | Do                                                    | Expect                                                                                              |
+| --- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| N1  | Landing hero, open the Time field                     | Opens on "Any time", then every half hour from 6:00 AM to 9:30 PM                                   |
+| N2  | Search pickleball, tomorrow, 9:00 PM                  | Lands on `/courts?…&time=21%3A00`; the header reads "from 9:00 PM" beside the date                  |
+| N3  | Compare that count with the same search at "Any time" | Fewer courts — only the venues open that late survive                                               |
+| N4  | Pick a time earlier than today's clock, for today     | No courts. A start already past is not offerable, the same rule the chips follow                    |
+| N5  | Every result row at a filtered time                   | Its chips include that time — the filter and the chips come from one function                       |
+| N6  | Edit the URL to `?time=03:07`                         | Browses unfiltered rather than erroring; the Time field reads "Any time" again                      |
+| N7  | Page 2 of a filtered search                           | Keeps the time; the count in the heading does not change between pages                              |
+| N8  | Footer → Terms of service, and → Privacy policy       | Both render; neither is a dead link                                                                 |
+| N9  | Landing "For venue owners" panel                      | Carries a dashboard illustration, labelled "Dashboard, for illustration" — its figures are not real |
+
 ## Known gaps — deliberately not in v1 yet
 
 Things a tester should NOT expect to find, so their absence isn't mistaken for a bug:
 
-- **No-show marking** — the `markNoShow` permission exists; there is no dashboard button yet.
 - **Series editing/cancelling** — `splitRrule` ("this and following") is implemented and tested
   in the domain, but no UI calls it. Cancelling a whole series means cancelling occurrences
   one by one.

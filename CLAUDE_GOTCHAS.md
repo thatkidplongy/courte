@@ -126,3 +126,10 @@ Google answers `401 invalid_client` on its own domain, well outside anything the
 
 `SiteHeader` therefore calls `signIn()` with no provider outside production, which lands on the
 Auth.js chooser where the dev provider lives. Only production skips the chooser for Google.
+
+## Typecheck races the dev server over `.next/dev/types`
+
+`pnpm typecheck` while `next dev` is running can fail with `TS1128: Declaration or statement
+expected` inside `.next/dev/types/routes.d.ts` or `validator.ts` — files Next generates, and was
+half-way through rewriting. Nothing in `src` is wrong. Stop the dev server, `rm -rf apps/web/.next`,
+and run it again.
