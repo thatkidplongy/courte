@@ -3,17 +3,24 @@ import Link from 'next/link';
 import { auth, signIn, signOut } from '@/auth';
 import { CourtMark } from '@/components/atoms/Icon';
 import { Button } from '@/components/shadcn/ui/button';
+import { isProduction } from '@/config/env';
 import { PAGE_GUTTER } from '@/consts';
 import { fetchVenueMemberships } from '@/lib/api/resources';
 import { cn } from '@/lib/utils';
 
 const NAV_LINK_CLASSES = 'text-[13.5px] font-medium text-white/80 transition hover:text-white';
 
+/**
+ * Google is the only provider in production, so the button skips the chooser and goes straight
+ * there. Development runs on placeholder Google credentials, where that same jump is a dead end
+ * — Google answers 401 invalid_client — so it goes to the Auth.js page instead, which offers the
+ * dev provider next to it. Either way sign-in returns to the page the button was pressed on.
+ */
 const SignInButton = () => (
   <form
     action={async () => {
       'use server';
-      await signIn('google');
+      await signIn(isProduction ? 'google' : undefined);
     }}
   >
     <Button type="submit">Sign in</Button>

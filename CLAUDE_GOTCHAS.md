@@ -117,3 +117,12 @@ server fixed it.
 
 If a brand-new route 404s and the server log shows the request never left the web app, restart
 before debugging the page.
+
+## The header's "Sign in" cannot go straight to Google in development
+
+`.env.local` carries placeholder Google credentials — enough to satisfy `config/env.ts`, which
+only checks the strings are non-empty, so nothing fails at boot. The failure lands on the user:
+Google answers `401 invalid_client` on its own domain, well outside anything the app logs.
+
+`SiteHeader` therefore calls `signIn()` with no provider outside production, which lands on the
+Auth.js chooser where the dev provider lives. Only production skips the chooser for Google.
