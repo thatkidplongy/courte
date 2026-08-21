@@ -22,7 +22,7 @@ const FOOTER_LINK_CLASSES = 'transition hover:text-white';
 
 export const SiteFooter = () => (
   <footer className="bg-night mt-auto text-white">
-    <div className={cn(PAGE_GUTTER, 'grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]')}>
+    <div className={cn(PAGE_GUTTER, 'grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]')}>
       <div>
         <p className="mb-4 flex items-center gap-2.5">
           <CourtMark className="text-primary h-[22px] w-[22px]" />
@@ -56,6 +56,18 @@ export const SiteFooter = () => (
       <FooterColumn heading="For venues">
         <span>List your venue</span>
         <span>Owner dashboard</span>
+      </FooterColumn>
+
+      {/* The mockup's fourth column is "Company", with About and Careers beside the two legal
+          pages. There is no company story to tell yet and nobody is hiring, so the column
+          carries only the two that a service taking bookings genuinely owes its players. */}
+      <FooterColumn heading="Company">
+        <Link href="/terms" className={FOOTER_LINK_CLASSES}>
+          Terms of service
+        </Link>
+        <Link href="/privacy" className={FOOTER_LINK_CLASSES}>
+          Privacy policy
+        </Link>
       </FooterColumn>
     </div>
 

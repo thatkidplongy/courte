@@ -293,6 +293,16 @@ asking `listStartTimes` — a court the filter keeps is a court whose card then 
 The web side narrows `?time=` to `SEARCH_TIME_OPTIONS` before sending it, so a hand-typed
 `?time=03:07` browses unfiltered instead of buying a full sweep for a value no control offers.
 
+## Policy pages
+
+`/terms` and `/privacy` are written from what the software does, and every claim in them is
+checkable against the schema — "we do not store card details" is true because there is no column
+for one, and "records are archived, not deleted" is the `deleted_at` convention. Both render
+through `LegalLayout`, so amending a clause never touches layout. The date they show is
+`LEGAL_UPDATED_ON`, hardcoded: it is the day the wording changed, which no build step can know.
+
+They have not been through a lawyer.
+
 ## Flex and grid minimums
 
 Two bugs of the same shape have been fixed in this repo, so it is worth stating the rule: **a

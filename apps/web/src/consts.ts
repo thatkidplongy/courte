@@ -91,6 +91,13 @@ export const COURT_FILTER_FIELDS = {
 } as const;
 
 /**
+ * The date both policy pages show. Hardcoded rather than derived: it is the day the wording
+ * last changed, which no build step can know, and a policy stamped with today's date every
+ * time it is deployed tells the reader nothing.
+ */
+export const LEGAL_UPDATED_ON = '16 August 2026';
+
+/**
  * The page gutter, in one place because the header, the footer and every page must agree — a
  * header whose logo does not sit above the first heading is the sort of drift nobody files.
  *
