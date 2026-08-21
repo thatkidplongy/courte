@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { auth, signIn, signOut } from '@/auth';
 import { CourtMark } from '@/components/atoms/Icon';
 import { Button } from '@/components/shadcn/ui/button';
+import { PAGE_GUTTER } from '@/consts';
 import { fetchVenueMemberships } from '@/lib/api/resources';
 import { cn } from '@/lib/utils';
 
@@ -43,7 +44,7 @@ export const SiteHeader = async () => {
 
   return (
     <header className="bg-night text-white">
-      <div className="mx-auto flex h-[76px] max-w-6xl items-center gap-5 px-5 sm:px-6 lg:gap-9">
+      <div className={cn(PAGE_GUTTER, 'flex h-[76px] items-center gap-5 lg:gap-9')}>
         <Link href="/" className="mr-auto flex items-center gap-2.5">
           <CourtMark className="text-primary h-6 w-6" />
           <span className="text-[19px] font-extrabold tracking-[0.14em]">COURTE</span>

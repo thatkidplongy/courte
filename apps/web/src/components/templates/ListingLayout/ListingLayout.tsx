@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 
 import { PinIcon } from '@/components/atoms/Icon';
+import { PAGE_GUTTER } from '@/consts';
+import { cn } from '@/lib/utils';
 
 type ListingLayoutProps = {
   title: string;
@@ -18,7 +20,7 @@ type ListingLayoutProps = {
 export const ListingLayout = ({ title, tagline, filters, children }: ListingLayoutProps) => (
   <main className="pb-20">
     <section className="bg-night text-white">
-      <div className="mx-auto max-w-6xl px-6 pb-24 pt-14">
+      <div className={cn(PAGE_GUTTER, 'pb-24 pt-14')}>
         <h1 className="text-4xl font-extrabold tracking-tight sm:text-[42px]">{title}</h1>
         <p className="text-primary mt-3 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]">
           <PinIcon className="h-3.5 w-3.5" />
@@ -29,7 +31,7 @@ export const ListingLayout = ({ title, tagline, filters, children }: ListingLayo
 
     {/* `relative` is load-bearing: the band's content sits in a positioned box, so a static
         sibling pulled up by the negative margin would slide underneath it. */}
-    <div className="relative z-10 mx-auto -mt-16 max-w-6xl px-6">{filters}</div>
-    <div className="mx-auto max-w-6xl px-6 pt-10">{children}</div>
+    <div className={cn(PAGE_GUTTER, 'relative z-10 -mt-16')}>{filters}</div>
+    <div className={cn(PAGE_GUTTER, 'pt-10')}>{children}</div>
   </main>
 );

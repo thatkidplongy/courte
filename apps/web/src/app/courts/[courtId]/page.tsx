@@ -11,7 +11,7 @@ import { StarRating } from '@/components/atoms/StarRating';
 import { TopRatedBadge } from '@/components/atoms/TopRatedBadge';
 import { ReviewList } from '@/components/molecules/ReviewList';
 import { VenueGallery } from '@/components/molecules/VenueGallery';
-import { DAY_STRIP_LENGTH, SPORT_LABELS } from '@/consts';
+import { DAY_STRIP_LENGTH, PAGE_GUTTER, SPORT_LABELS } from '@/consts';
 import { isNotFound } from '@/lib/api/client';
 import { fetchVenueSchedule } from '@/lib/api/resources';
 import { parseRouteId } from '@/lib/ids';
@@ -166,7 +166,7 @@ const CourtPage = async ({ params, searchParams }: PageProps) => {
 
       {anchorCourt ? <VenueGallery photos={schedule.venuePhotos} sport={anchorCourt.sport} /> : null}
 
-      <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-10">
+      <main className={cn(PAGE_GUTTER, 'py-8 lg:py-10')}>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <h1 className="text-3xl font-extrabold tracking-tight sm:text-[34px]">{schedule.venueName}</h1>
           {schedule.venueRating.isTopRated ? <TopRatedBadge /> : null}

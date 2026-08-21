@@ -49,6 +49,16 @@ own:
 
 `MobileTabBar` is global and shows below `lg`, where it — not the header — is the navigation.
 
+### Page width
+
+Every gutter comes from `PAGE_GUTTER` in `apps/web/src/consts.ts` — the header, the footer and
+each page use the same string, because a logo that does not sit above the first heading is drift
+nobody files a bug for. It reproduces the mockups exactly at their 1440 canvas (56px sides) and
+caps there, so a very wide monitor does not stretch a row of cards past reading distance.
+
+The landing hero is the one place that opts out: its left column carries the gutter itself so
+the artwork beside it can run to the canvas edge, the way the mockup's photograph does.
+
 ### What the mockups draw that we do not build
 
 Star ratings, review counts and "top rated" are real now. What has not changed is the reason

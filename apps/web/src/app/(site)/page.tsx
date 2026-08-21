@@ -5,14 +5,15 @@ import { CITY_SEARCH_RADIUS_METRES, SEARCH_DEFAULTS, SPORTS, type CourtSearchIte
 
 import { auth } from '@/auth';
 import { HeroBackdrop } from '@/components/atoms/HeroBackdrop';
-import { ArrowRightIcon, BoltIcon, CheckIcon, ClockIcon, ShieldIcon } from '@/components/atoms/Icon';
+import { ArrowRightIcon, BoltIcon, CheckIcon, ClockIcon, EllipsisIcon, ShieldIcon } from '@/components/atoms/Icon';
 import { SportGlyph } from '@/components/atoms/SportGlyph';
+import { DashboardPreview } from '@/components/molecules/DashboardPreview';
 import { EmptyState } from '@/components/molecules/EmptyState';
 import { StatTile } from '@/components/molecules/StatTile';
 import { CourtCard } from '@/components/organisms/CourtCard';
 import { HeroSearchBar } from '@/components/organisms/HeroSearchBar';
 import { UpNextCard } from '@/components/organisms/UpNextCard';
-import { HOME_TEASER_SIZE, SPORT_LABELS } from '@/consts';
+import { HOME_TEASER_SIZE, PAGE_GUTTER, SEARCH_TIME_OPTIONS, SPORT_LABELS } from '@/consts';
 import { fetchBookings, searchCourts } from '@/lib/api/resources';
 import { findNextBooking } from '@/lib/bookings';
 import { isSport } from '@/lib/courtFilters';
@@ -48,6 +49,7 @@ type HeroProps = {
   kicker: string;
   sport: Sport;
   dateIso: string;
+  time?: string;
 };
 
 /**
@@ -59,10 +61,12 @@ type HeroProps = {
  * licensed image, so the panel carries the vector artwork instead — see `HeroBackdrop` for why
  * it is drawn rather than shot.
  */
-const Hero = ({ kicker, sport, dateIso }: HeroProps) => (
+const Hero = ({ kicker, sport, dateIso, time }: HeroProps) => (
   <section className="bg-night text-white">
-    <div className="mx-auto grid max-w-6xl gap-8 px-5 pb-14 pt-14 sm:px-6 md:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] md:items-center md:gap-10 md:pb-16">
-      <div className="min-w-0">
+    <div className="mx-auto grid w-full max-w-[1440px] md:grid-cols-2 md:items-center">
+      {/* The gutter is applied to this column rather than the grid, so the artwork beside it can
+          run to the canvas edge the way the mockup's photograph does. */}
+      <div className="min-w-0 px-5 py-14 sm:px-8 lg:py-16 lg:pl-14 lg:pr-10">
         <p className="text-primary text-[10.5px] font-semibold uppercase tracking-[0.18em]">{kicker}</p>
         <h1 className="mt-5 text-5xl font-extrabold leading-[1.02] tracking-[-0.03em] sm:text-6xl">
           Book your court.
@@ -74,13 +78,15 @@ const Hero = ({ kicker, sport, dateIso }: HeroProps) => (
         </p>
 
         <div className="mt-9">
-          <HeroSearchBar sport={sport} dateIso={dateIso} />
+          <HeroSearchBar sport={sport} dateIso={dateIso} time={time} />
         </div>
 
         <TrustBadges />
       </div>
 
-      <div className="relative hidden min-h-[420px] self-stretch md:block">
+      {/* 520px is the mockup's hero height, and the artwork holds it so the night block does not
+          collapse around the copy on a short viewport. */}
+      <div className="relative hidden min-h-[520px] self-stretch md:block">
         <HeroBackdrop />
       </div>
     </div>
@@ -109,24 +115,42 @@ const SectionHeading = ({ title, meta, action }: SectionHeadingProps) => (
   </div>
 );
 
+const TILE_CLASSES = 'flex w-[120px] flex-col gap-3.5 rounded-md border px-4 py-5 transition lg:w-auto';
+
 /**
- * A scrolling row on a phone and a six-across grid on a desktop. The phone screens in the
+ * A scrolling row on a phone and a seven-across grid on a desktop. The phone screens in the
  * design put sports in a swipeable strip rather than a grid, and a 2×3 grid of tiles is a lot
  * of vertical space to spend before the reader has seen a single court.
+ *
+ * The seventh tile is the mockup's "More", drawn dashed because it names no sport. Ours leads
+ * to the unfiltered marketplace rather than nowhere: every sport we do not have a tile for is
+ * reached by not filtering at all.
  */
 const SportTiles = ({ dateIso }: { dateIso: string }) => (
-  <ul className="-mx-5 mt-7 flex snap-x gap-3.5 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-6 lg:px-0">
+  <ul className="-mx-5 mt-7 flex snap-x gap-3.5 overflow-x-auto px-5 pb-1 lg:mx-0 lg:grid lg:grid-cols-7 lg:px-0">
     {SPORTS.map(sport => (
       <li key={sport} className="shrink-0 snap-start lg:shrink">
         <Link
           href={`/courts?sport=${sport}&date=${dateIso}`}
-          className="border-border hover:border-primary hover:bg-accent flex w-[120px] flex-col gap-3.5 rounded-md border px-4 py-5 transition lg:w-auto"
+          className={cn(TILE_CLASSES, 'border-border hover:border-primary hover:bg-accent')}
         >
           <SportGlyph sport={sport} className="h-[26px] w-[26px]" />
           <span className="text-[13px] font-semibold">{SPORT_LABELS[sport]}</span>
         </Link>
       </li>
     ))}
+    <li className="shrink-0 snap-start lg:shrink">
+      <Link
+        href={`/courts?date=${dateIso}`}
+        className={cn(
+          TILE_CLASSES,
+          'border-muted-foreground/35 text-muted-foreground hover:border-primary border-dashed'
+        )}
+      >
+        <EllipsisIcon className="h-[26px] w-[26px]" />
+        <span className="text-[13px] font-semibold">More</span>
+      </Link>
+    </li>
   </ul>
 );
 
@@ -195,20 +219,25 @@ const AudiencePanels = ({ dateIso }: { dateIso: string }) => (
       </Link>
     </div>
 
-    <div className="bg-muted rounded-md p-9">
-      <h3 className="text-2xl font-extrabold tracking-tight">For venue owners</h3>
-      <PointList points={VENUE_POINTS} />
-      {/* No call to action: there is no self-serve onboarding yet, and a button that leads
-          nowhere would be the most prominent broken promise on the page. */}
-      <p className="text-muted-foreground mt-7 text-[12.5px] font-medium">
-        Venue accounts are set up by the Courte team. Sign in to reach your dashboard.
-      </p>
+    <div className="bg-muted grid gap-6 rounded-md p-9 lg:grid-cols-2">
+      <div>
+        <h3 className="text-2xl font-extrabold tracking-tight">For venue owners</h3>
+        <p className="text-muted-foreground mt-2.5 text-[13.5px]">Grow your venue with Courte.</p>
+        <PointList points={VENUE_POINTS} />
+        {/* No call to action: there is no self-serve onboarding yet, and a button that leads
+            nowhere would be the most prominent broken promise on the page. */}
+        <p className="text-muted-foreground mt-7 text-[12.5px] font-medium">
+          Venue accounts are set up by the Courte team. Sign in to reach your dashboard.
+        </p>
+      </div>
+
+      <DashboardPreview className="self-start" />
     </div>
   </section>
 );
 
 type PageProps = {
-  searchParams: Promise<{ sport?: string; date?: string }>;
+  searchParams: Promise<{ sport?: string; date?: string; time?: string }>;
 };
 
 const LandingPage = async ({ searchParams }: PageProps) => {
@@ -216,6 +245,9 @@ const LandingPage = async ({ searchParams }: PageProps) => {
   const sport: Sport = isSport(params.sport) ? params.sport : 'pickleball';
   const today = DateTime.now().setZone(SEARCH_DEFAULTS.timezone).toFormat('yyyy-MM-dd');
   const dateIso = params.date ?? today;
+  // The bar remembers a time the reader came back with, but the teaser below stays unfiltered:
+  // the landing shows what the city has, and narrowing it is what /courts is for.
+  const time = SEARCH_TIME_OPTIONS.includes(params.time ?? '') ? params.time : undefined;
 
   // A teaser of the nearest few, over the same radius the marketplace uses so the hero's count
   // and the listing's count are the same number. /courts is where the full inventory lives.
@@ -239,17 +271,18 @@ const LandingPage = async ({ searchParams }: PageProps) => {
         kicker={`${SEARCH_DEFAULTS.label} · ${total} ${SPORT_LABELS[sport].toLowerCase()} ${total === 1 ? 'court' : 'courts'}`}
         sport={sport}
         dateIso={dateIso}
+        time={time}
       />
 
       {/* Straddles the seam between the night hero and the page, which is the one thing on the
           landing that genuinely floats — a returning player's next game outranks the marketing. */}
       {nextBooking ? (
-        <div className="relative z-10 mx-auto -mt-9 max-w-6xl px-5 sm:px-6">
+        <div className={cn(PAGE_GUTTER, 'relative z-10 -mt-9')}>
           <UpNextCard booking={nextBooking} className="ring-background ring-4" />
         </div>
       ) : null}
 
-      <div className={cn('mx-auto max-w-6xl px-5 sm:px-6', nextBooking && 'mt-4')}>
+      <div className={cn(PAGE_GUTTER, nextBooking && 'mt-4')}>
         <section className="border-ink mt-16 border-t-2 pt-12">
           <SectionHeading
             title="Play any sport, anywhere"
@@ -272,7 +305,7 @@ const LandingPage = async ({ searchParams }: PageProps) => {
               action={{ href: '/courts', label: 'Show every court' }}
             />
           ) : (
-            <ul className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {courts.map(court => (
                 <CourtCard key={court.id} court={court} dateIso={dateIso} />
               ))}

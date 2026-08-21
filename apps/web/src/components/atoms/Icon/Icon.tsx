@@ -51,6 +51,15 @@ export const UnavailableIcon = (props: IconProps) => (
   </Glyph>
 );
 
+/** Lucide's `more-horizontal`: the tile that stands for "and the rest", never for a thing. */
+export const EllipsisIcon = (props: IconProps) => (
+  <Glyph {...props}>
+    <circle cx="5" cy="12" r="1.4" />
+    <circle cx="12" cy="12" r="1.4" />
+    <circle cx="19" cy="12" r="1.4" />
+  </Glyph>
+);
+
 export const PinIcon = (props: IconProps) => (
   <Glyph {...props}>
     <path d="M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11z" />

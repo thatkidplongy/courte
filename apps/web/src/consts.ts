@@ -90,6 +90,16 @@ export const COURT_FILTER_FIELDS = {
   page: 'page',
 } as const;
 
+/**
+ * The page gutter, in one place because the header, the footer and every page must agree — a
+ * header whose logo does not sit above the first heading is the sort of drift nobody files.
+ *
+ * The mockups are drawn on a 1440 canvas with 56px sides, which is what `lg:px-14` reproduces
+ * exactly at that width. The cap keeps a very wide monitor from stretching a row of cards to
+ * the point where the eye has to travel to read one line.
+ */
+export const PAGE_GUTTER = 'mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-14';
+
 const SEARCH_TIME_FIRST_MINUTE = 6 * 60;
 const SEARCH_TIME_STEP_MINUTES = 30;
 const SEARCH_TIME_SLOT_COUNT = 32;
@@ -167,8 +177,8 @@ export const BOOKING_PERIOD_LABELS = {
 /** Days offered on the venue page's day strip, starting today. A working week ahead. */
 export const DAY_STRIP_LENGTH = 5;
 
-/** The landing page shows a taste of what is nearby, not the catalogue. */
-export const HOME_TEASER_SIZE = 4;
+/** The landing page shows a taste of what is nearby, not the catalogue — one row of five. */
+export const HOME_TEASER_SIZE = 5;
 
 /**
  * OpenStreetMap's own tile server. Attribution is a licence condition, not decoration, and it

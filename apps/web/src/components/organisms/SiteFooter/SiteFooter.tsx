@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 
 import { CourtMark } from '@/components/atoms/Icon';
+import { PAGE_GUTTER } from '@/consts';
+import { cn } from '@/lib/utils';
 
 type FooterColumnProps = {
   heading: string;
@@ -20,7 +22,7 @@ const FOOTER_LINK_CLASSES = 'transition hover:text-white';
 
 export const SiteFooter = () => (
   <footer className="bg-night mt-auto text-white">
-    <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+    <div className={cn(PAGE_GUTTER, 'grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]')}>
       <div>
         <p className="mb-4 flex items-center gap-2.5">
           <CourtMark className="text-primary h-[22px] w-[22px]" />
@@ -58,7 +60,12 @@ export const SiteFooter = () => (
     </div>
 
     <div className="border-t border-white/10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-1 px-6 py-5 text-[11.5px] text-white/45 sm:flex-row sm:justify-between">
+      <div
+        className={cn(
+          PAGE_GUTTER,
+          'flex flex-col gap-1 py-5 text-[11.5px] text-white/45 sm:flex-row sm:justify-between'
+        )}
+      >
         <p>© 2026 Courte. All rights reserved.</p>
         {/* ODbL requires visible attribution wherever the venue coordinates are shown. */}
         <p>
