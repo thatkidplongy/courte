@@ -63,7 +63,10 @@ type HeroProps = {
  */
 const Hero = ({ kicker, sport, dateIso, time }: HeroProps) => (
   <section className="bg-night text-white">
-    <div className="mx-auto grid w-full max-w-[1440px] md:grid-cols-2 md:items-center">
+    {/* The split is uneven because the search bar sets it: one row of four fields plus the submit
+        needs 720px, and an even 50/50 left the copy column 100px short of that at every width
+        below the 1440 canvas. The artwork reads at 460px; the bar does not. */}
+    <div className="mx-auto grid w-full max-w-[1440px] md:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] md:items-center">
       {/* The gutter is applied to this column rather than the grid, so the artwork beside it can
           run to the canvas edge the way the mockup's photograph does. */}
       <div className="min-w-0 px-5 py-14 sm:px-8 lg:py-16 lg:pl-14 lg:pr-10">

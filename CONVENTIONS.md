@@ -315,6 +315,14 @@ The result is that the _sibling_ overflows rather than the offender. A long venu
 clipped edge; the search bar's cells refused to shrink and pushed the submit button off the
 right of a phone screen. Reach for `minmax(0, 1fr)` on the track and `min-w-0` on the flex item.
 
+The second half of the rule: **a component inside a column sizes off its own width, not the
+viewport's.** `HeroSearchBar` lives in the hero's copy column, which is half the canvas — that
+column is narrower at 1440 than the whole page is at 700, so a `sm:` breakpoint turned the bar
+horizontal 400px before it had the room and hung the submit button outside the card at every
+desktop width. A component whose layout depends on the space it was given gets `@container` on
+its own wrapper and `@min-[…]:` variants inside, sized to what the widest layout actually
+measures — never a viewport breakpoint.
+
 ## Component layering (apps/web)
 
 Atomic design, used as a composition rule rather than a taxonomy to argue about:
