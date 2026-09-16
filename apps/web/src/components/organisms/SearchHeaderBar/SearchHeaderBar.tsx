@@ -2,14 +2,14 @@ import type { ReactNode } from 'react';
 
 import Link from 'next/link';
 
-import { SEARCH_DEFAULTS, SPORTS, type Sport } from '@courte/contract';
+import { SEARCH_DEFAULTS, type Sport } from '@courte/contract';
 
 import { Avatar } from '@/components/atoms/Avatar';
 import { CourtMark, PinIcon, SearchIcon } from '@/components/atoms/Icon';
 import { DateField } from '@/components/molecules/DateField';
-import { SelectField, type SelectOption } from '@/components/molecules/SelectField';
-import { ANY_FILTER_VALUE, COURT_FILTER_FIELDS, SEARCH_TIME_OPTIONS, SPORT_LABELS } from '@/consts';
-import { formatClockLabel } from '@/lib/format';
+import { SelectField } from '@/components/molecules/SelectField';
+import { ANY_FILTER_VALUE, COURT_FILTER_FIELDS } from '@/consts';
+import { SPORT_OPTIONS_WITH_ANY, TIME_OPTIONS } from '@/lib/searchOptions';
 
 type SearchHeaderBarProps = {
   sport: Sport | undefined;
@@ -19,16 +19,6 @@ type SearchHeaderBarProps = {
   /** The signed-in user's display name, or null when nobody is signed in. */
   userName: string | null;
 };
-
-const SPORT_OPTIONS: SelectOption[] = [
-  { value: ANY_FILTER_VALUE, label: 'All sports' },
-  ...SPORTS.map(sport => ({ value: sport, label: SPORT_LABELS[sport] })),
-];
-
-const TIME_OPTIONS: SelectOption[] = [
-  { value: ANY_FILTER_VALUE, label: 'Any time' },
-  ...SEARCH_TIME_OPTIONS.map(time => ({ value: time, label: formatClockLabel(time) })),
-];
 
 /**
  * Control on top, caption beneath — the reverse of a form field, and what the mockups draw.
@@ -69,7 +59,7 @@ export const SearchHeaderBar = ({ sport, dateIso, time, userName }: SearchHeader
         <SelectField
           name={COURT_FILTER_FIELDS.sport}
           defaultValue={sport ?? ANY_FILTER_VALUE}
-          options={SPORT_OPTIONS}
+          options={SPORT_OPTIONS_WITH_ANY}
           className={BARE_CONTROL}
         />
       </SearchCell>

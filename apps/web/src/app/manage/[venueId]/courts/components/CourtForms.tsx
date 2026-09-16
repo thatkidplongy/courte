@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react';
 
-import { COURT_SURFACES, SPORTS, type OwnedCourt } from '@courte/contract';
+import { COURT_SURFACES, type OwnedCourt } from '@courte/contract';
 
 import { Notice } from '@/components/atoms/Notice';
 import { ControlGroup } from '@/components/molecules/ControlGroup';
@@ -10,12 +10,12 @@ import { FormField } from '@/components/molecules/FormField';
 import { SelectField, type SelectOption } from '@/components/molecules/SelectField';
 import { Button } from '@/components/shadcn/ui/button';
 import { Input } from '@/components/shadcn/ui/input';
-import { COURT_SURFACE_LABELS, SPORT_LABELS } from '@/consts';
+import { COURT_SURFACE_LABELS } from '@/consts';
+import { SPORT_OPTIONS } from '@/lib/searchOptions';
 import type { ManageFormState } from '@/server-actions/manageVenue';
 
 type InventoryAction = (state: ManageFormState, formData: FormData) => Promise<ManageFormState>;
 
-const SPORT_OPTIONS: SelectOption[] = SPORTS.map(sport => ({ value: sport, label: SPORT_LABELS[sport] }));
 const SURFACE_OPTIONS: SelectOption[] = COURT_SURFACES.map(surface => ({
   value: surface,
   label: COURT_SURFACE_LABELS[surface],

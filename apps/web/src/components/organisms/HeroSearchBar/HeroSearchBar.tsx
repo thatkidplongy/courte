@@ -1,12 +1,12 @@
-import { SEARCH_DEFAULTS, SPORTS, type Sport } from '@courte/contract';
+import { SEARCH_DEFAULTS, type Sport } from '@courte/contract';
 
 import { PinIcon, SearchIcon } from '@/components/atoms/Icon';
 import { ControlGroup } from '@/components/molecules/ControlGroup';
 import { DateField } from '@/components/molecules/DateField';
-import { SelectField, type SelectOption } from '@/components/molecules/SelectField';
+import { SelectField } from '@/components/molecules/SelectField';
 import { Button } from '@/components/shadcn/ui/button';
-import { ANY_FILTER_VALUE, COURT_FILTER_FIELDS, SEARCH_TIME_OPTIONS, SPORT_LABELS } from '@/consts';
-import { formatClockLabel } from '@/lib/format';
+import { ANY_FILTER_VALUE, COURT_FILTER_FIELDS } from '@/consts';
+import { SPORT_OPTIONS, TIME_OPTIONS } from '@/lib/searchOptions';
 
 type HeroSearchBarProps = {
   sport: Sport;
@@ -14,16 +14,19 @@ type HeroSearchBarProps = {
   time?: string;
 };
 
-const SPORT_OPTIONS: SelectOption[] = SPORTS.map(sport => ({ value: sport, label: SPORT_LABELS[sport] }));
-
 /**
- * "Any time" leads, and is what the bar opens on. A search bar that arrives pre-filtered to
- * 6 PM hides every court free at nine and looks like the city has fewer courts than it has.
+ * Everything keyed to the one-row breakpoint, in one place. 45rem is measured, not chosen: one
+ * row of four fields at this padding floors at 718px, so the bar goes horizontal at 720 and not
+ * a pixel earlier. Widening a cell means re-measuring that floor and moving the breakpoint —
+ * the padding and the number are a pair, and these four lines are the whole of one half.
+ *
+ * They stay whole literal class strings because Tailwind scans source text: a breakpoint built
+ * by interpolation generates no CSS, and the failure is silent.
  */
-const TIME_OPTIONS: SelectOption[] = [
-  { value: ANY_FILTER_VALUE, label: 'Any time' },
-  ...SEARCH_TIME_OPTIONS.map(time => ({ value: time, label: formatClockLabel(time) })),
-];
+const ONE_ROW_FORM = '@min-[45rem]:flex-nowrap @min-[45rem]:items-stretch @min-[45rem]:divide-x';
+const ONE_ROW_CELL = '@min-[45rem]:basis-auto @min-[45rem]:grow';
+const ONE_ROW_SUBMIT = '@min-[45rem]:basis-auto @min-[45rem]:items-stretch @min-[45rem]:pl-3.5 @min-[45rem]:pr-0';
+const ONE_ROW_BUTTON = '@min-[45rem]:w-auto';
 
 /**
  * `min-w-0` is the rule from CONVENTIONS: a flex item is floored at its own min-content, and
@@ -34,7 +37,7 @@ const TIME_OPTIONS: SelectOption[] = [
  * Cells go full-width, then two-up, then one row: `basis-*` with `flex-wrap` reflows without
  * ever switching display mode, so the dividers below only have to be right in the one-row case.
  */
-const CELL_CLASSES = 'min-w-0 basis-full px-3.5 py-2 @xs:basis-1/2 @min-[45rem]:basis-auto @min-[45rem]:grow';
+const CELL_CLASSES = `min-w-0 basis-full px-3.5 py-2 @xs:basis-1/2 ${ONE_ROW_CELL}`;
 
 /**
  * Submits to the marketplace, not back to itself. The hero is an entry point; browsing happens
@@ -49,11 +52,6 @@ const CELL_CLASSES = 'min-w-0 basis-full px-3.5 py-2 @xs:basis-1/2 @min-[45rem]:
  * breakpoint read the viewport, turned the bar horizontal at 640px and left the green button
  * hanging outside the card at every desktop width.
  *
- * 45rem is measured, not chosen: one row of four fields at this padding floors at 718px, so the
- * bar goes horizontal at 720 and not a pixel earlier. Below it the fields go two-up with the
- * button full-width beneath them. Widening the cells means re-measuring the floor and moving
- * every `@min-[45rem]` with it — the two numbers are a pair.
- *
  * The shadow is the one place the flat system allows one — the bar is a white card sitting on
  * the night hero, and elevation is what says it is in front rather than part of it.
  *
@@ -66,7 +64,7 @@ export const HeroSearchBar = ({ sport, dateIso, time }: HeroSearchBarProps) => (
     <form
       method="GET"
       action="/courts"
-      className="border-border divide-border text-foreground @min-[45rem]:flex-nowrap @min-[45rem]:items-stretch @min-[45rem]:divide-x flex flex-wrap rounded-md border bg-white p-2 shadow-xl"
+      className={`border-border divide-border text-foreground flex flex-wrap rounded-md border bg-white p-2 shadow-xl ${ONE_ROW_FORM}`}
       aria-label="Search courts"
     >
       <ControlGroup label="Sport" className={CELL_CLASSES}>
@@ -90,11 +88,11 @@ export const HeroSearchBar = ({ sport, dateIso, time }: HeroSearchBarProps) => (
         <SelectField name={COURT_FILTER_FIELDS.time} defaultValue={time ?? ANY_FILTER_VALUE} options={TIME_OPTIONS} />
       </ControlGroup>
 
-      <div className="@min-[45rem]:basis-auto @min-[45rem]:items-stretch @min-[45rem]:pl-3.5 @min-[45rem]:pr-0 flex basis-full items-end p-2">
+      <div className={`flex basis-full items-end p-2 ${ONE_ROW_SUBMIT}`}>
         {/* `h-full` fills the cell in one-row mode, where the wrapping cell is a stretched flex
             item with a definite height. Wrapped, that height is auto and the percentage collapses
             — `min-h-11` is what keeps the button a button there. */}
-        <Button type="submit" size="lg" className="@min-[45rem]:w-auto h-full min-h-11 w-full">
+        <Button type="submit" size="lg" className={`h-full min-h-11 w-full ${ONE_ROW_BUTTON}`}>
           <SearchIcon className="h-4 w-4" />
           Search courts
         </Button>
