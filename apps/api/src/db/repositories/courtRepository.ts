@@ -180,9 +180,16 @@ const ORDER_BY_SORT: Record<CourtSort, string> = {
  * The rate is computed here rather than in the service because the marketplace filters and
  * sorts on it. A price filter applied after the page was fetched would contradict `total`.
  */
-export const searchCourtsByProximity = async (
-  params: SearchCourtsParams
-): Promise<{ courts: CourtSearchResult[]; total: number }> => {
+/**
+ * Builds the WHERE fragments and the bound values together, because they are one thing: every
+ * `$n` in a fragment is an index into `values`, taken from `values.length` at the moment that
+ * value is pushed. Pushing and naming in separate places is how the two drift, so they are not
+ * separable here — read one line, read both halves.
+ *
+ * Returned rather than mutated in the caller so the invariant has an owner, and so the order
+ * (origin, then filters, then paging) is stated once instead of spread down a query body.
+ */
+const buildSearchBindings = (params: SearchCourtsParams) => {
   const page = params.page ?? DEFAULT_PAGE;
   const limit = params.limit ?? DEFAULT_LIMIT;
   const offset = (page - 1) * limit;
@@ -222,6 +229,35 @@ export const searchCourtsByProximity = async (
   const limitPlaceholder = `$${values.length}`;
   values.push(offset);
   const offsetPlaceholder = `$${values.length}`;
+
+  return { filters, values, limitPlaceholder, offsetPlaceholder };
+};
+
+/**
+ * The search row carries its venue, distance and cheapest rate alongside the court. Postgres
+ * returns bigints and numerics as strings, so every one of these Number() calls is load-bearing
+ * rather than defensive — `venueCourtCount` would otherwise reach the page as "3".
+ */
+const toCourtSearchResult = (row: VenueSearchRow): CourtSearchResult => ({
+  ...toCourt(row),
+  venueName: row.venue_name,
+  venueAddress: row.venue_address,
+  venueTimezone: row.venue_timezone,
+  venueCourtCount: Number(row.venue_court_count),
+  venueAmenitySlugs: row.venue_amenity_slugs ?? [],
+  venuePhoto: row.photo_url && row.photo_alt ? { url: row.photo_url, alt: row.photo_alt } : null,
+  venueReviewCount: row.review_count ?? 0,
+  venueRatingAverage: row.rating_avg == null ? null : Number(row.rating_avg),
+  latitude: Number(row.latitude),
+  longitude: Number(row.longitude),
+  distanceMetres: Math.round(row.distance_metres),
+  fromRatePerHourCents: row.from_rate_cents === null ? null : Number(row.from_rate_cents),
+});
+
+export const searchCourtsByProximity = async (
+  params: SearchCourtsParams
+): Promise<{ courts: CourtSearchResult[]; total: number }> => {
+  const { filters, values, limitPlaceholder, offsetPlaceholder } = buildSearchBindings(params);
 
   const rows = await query<VenueSearchRow>(
     `
@@ -293,23 +329,10 @@ export const searchCourtsByProximity = async (
     values
   );
 
-  const courts = rows.map(row => ({
-    ...toCourt(row),
-    venueName: row.venue_name,
-    venueAddress: row.venue_address,
-    venueTimezone: row.venue_timezone,
-    venueCourtCount: Number(row.venue_court_count),
-    venueAmenitySlugs: row.venue_amenity_slugs ?? [],
-    venuePhoto: row.photo_url && row.photo_alt ? { url: row.photo_url, alt: row.photo_alt } : null,
-    venueReviewCount: row.review_count ?? 0,
-    venueRatingAverage: row.rating_avg == null ? null : Number(row.rating_avg),
-    latitude: Number(row.latitude),
-    longitude: Number(row.longitude),
-    distanceMetres: Math.round(row.distance_metres),
-    fromRatePerHourCents: row.from_rate_cents === null ? null : Number(row.from_rate_cents),
-  }));
-
-  return { courts, total: rows.length > 0 ? Number(rows[0]?.total_count ?? 0) : 0 };
+  return {
+    courts: rows.map(toCourtSearchResult),
+    total: rows.length > 0 ? Number(rows[0]?.total_count ?? 0) : 0,
+  };
 };
 
 /**
