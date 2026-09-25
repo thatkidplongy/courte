@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { MALFORMED_ID_ERROR } from '@/consts';
+import { placeHold as placeHoldRequest } from '@/lib/api';
 import { ApiError } from '@/lib/api/client';
-import { placeHold as placeHoldRequest } from '@/lib/api/resources';
 import { readFormId } from '@/lib/ids';
 
 export type PlaceHoldFormState = {

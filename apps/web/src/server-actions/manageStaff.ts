@@ -7,8 +7,8 @@ import { VENUE_ROLES, type VenueRole } from '@courte/contract';
 
 import { auth } from '@/auth';
 import { MALFORMED_ID_ERROR } from '@/consts';
+import { addVenueMember, removeVenueMember } from '@/lib/api';
 import { ApiError } from '@/lib/api/client';
-import { addVenueMember, removeVenueMember } from '@/lib/api/resources';
 import { readFormId } from '@/lib/ids';
 import type { ManageFormState } from '@/server-actions/manageVenue';
 

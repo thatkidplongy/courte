@@ -7,7 +7,6 @@ import { COURT_SURFACES, SPORTS, type CourtSurface, type Sport } from '@courte/c
 
 import { auth } from '@/auth';
 import { MALFORMED_ID_ERROR } from '@/consts';
-import { ApiError } from '@/lib/api/client';
 import {
   archiveCourt as archiveCourtRequest,
   createCourt as createCourtRequest,
@@ -15,7 +14,8 @@ import {
   deletePriceRule as deletePriceRuleRequest,
   replaceOpeningWindows as replaceOpeningWindowsRequest,
   restoreCourt as restoreCourtRequest,
-} from '@/lib/api/resources';
+} from '@/lib/api';
+import { ApiError } from '@/lib/api/client';
 import { readFormId } from '@/lib/ids';
 import type { ManageFormState } from '@/server-actions/manageVenue';
 

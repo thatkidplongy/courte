@@ -4,8 +4,8 @@ import { notFound, redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { VenueSidebar } from '@/components/organisms/VenueSidebar';
+import { fetchVenueDashboard } from '@/lib/api';
 import { isNotFound } from '@/lib/api/client';
-import { fetchVenueDashboard } from '@/lib/api/resources';
 import { parseRouteId } from '@/lib/ids';
 import { buildVenueNav } from '@/lib/venueNav';
 

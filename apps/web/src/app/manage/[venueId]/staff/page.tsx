@@ -6,8 +6,8 @@ import { auth } from '@/auth';
 import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { PageHeader } from '@/components/molecules/PageHeader';
 import { Panel } from '@/components/molecules/Panel';
+import { fetchVenueStaff } from '@/lib/api';
 import { ApiError, isNotFound } from '@/lib/api/client';
-import { fetchVenueStaff } from '@/lib/api/resources';
 import { parseRouteId } from '@/lib/ids';
 import { addStaff, removeStaff } from '@/server-actions/manageStaff';
 

@@ -15,7 +15,7 @@ import { SearchHeaderBar } from '@/components/organisms/SearchHeaderBar';
 import { SearchLayout } from '@/components/templates/SearchLayout';
 import { COURT_SORT_SHORT_LABELS, MARKETPLACE_PAGE_SIZE, SPORT_LABELS } from '@/consts';
 import { buildAmenityLabelMap } from '@/lib/amenities';
-import { fetchAmenities, searchCourts } from '@/lib/api/resources';
+import { fetchAmenities, searchCourts } from '@/lib/api';
 import { buildCourtsHref, clearCourtFilters, countActiveFilters, parseCourtFilters } from '@/lib/courtFilters';
 import type { CourtFilters } from '@/lib/courtFilters';
 import { formatClockLabel } from '@/lib/format';

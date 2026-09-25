@@ -5,8 +5,8 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { MALFORMED_ID_ERROR } from '@/consts';
+import { joinWaitlist as joinWaitlistRequest } from '@/lib/api';
 import { ApiError } from '@/lib/api/client';
-import { joinWaitlist as joinWaitlistRequest } from '@/lib/api/resources';
 import { readFormId } from '@/lib/ids';
 
 export type JoinWaitlistFormState = {

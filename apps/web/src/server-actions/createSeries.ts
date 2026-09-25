@@ -6,8 +6,8 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { MALFORMED_ID_ERROR } from '@/consts';
+import { createSeries as createSeriesRequest } from '@/lib/api';
 import { ApiError } from '@/lib/api/client';
-import { createSeries as createSeriesRequest } from '@/lib/api/resources';
 import { readFormId } from '@/lib/ids';
 
 export type CreateSeriesFormState = {

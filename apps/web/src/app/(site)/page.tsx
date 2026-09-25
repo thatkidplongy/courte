@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/molecules/EmptyState';
 import { CourtCard } from '@/components/organisms/CourtCard';
 import { UpNextCard } from '@/components/organisms/UpNextCard';
 import { HOME_TEASER_SIZE, PAGE_GUTTER, SEARCH_TIME_OPTIONS, SPORT_LABELS } from '@/consts';
-import { fetchBookings, searchCourts } from '@/lib/api/resources';
+import { fetchBookings, searchCourts } from '@/lib/api';
 import { findNextBooking } from '@/lib/bookings';
 import { isSport } from '@/lib/courtFilters';
 import { cn } from '@/lib/utils';

@@ -8,8 +8,8 @@ import { StatusBadge } from '@/components/atoms/StatusBadge';
 import { PageHeader } from '@/components/molecules/PageHeader';
 import { Panel } from '@/components/molecules/Panel';
 import { COURT_SURFACE_LABELS, SPORT_LABELS } from '@/consts';
+import { fetchOwnedCourts } from '@/lib/api';
 import { isNotFound } from '@/lib/api/client';
-import { fetchOwnedCourts } from '@/lib/api/resources';
 import { parseRouteId } from '@/lib/ids';
 import { createCourt, setCourtArchived } from '@/server-actions/manageInventory';
 

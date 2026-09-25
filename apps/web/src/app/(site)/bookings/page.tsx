@@ -18,7 +18,7 @@ import {
   PAYMENT_STATE_LABELS,
   PAYMENT_STATE_TONES,
 } from '@/consts';
-import { fetchBookings, fetchWaitlistEntries } from '@/lib/api/resources';
+import { fetchBookings, fetchWaitlistEntries } from '@/lib/api';
 import { BOOKING_PERIODS, filterBookingsByPeriod, findNextBooking, isBookingPeriod } from '@/lib/bookings';
 import type { BookingPeriod } from '@/lib/bookings';
 import { formatDay, formatPesos, formatTime } from '@/lib/format';

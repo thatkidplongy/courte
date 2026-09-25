@@ -7,13 +7,13 @@ import { PAYMENT_METHODS, type PaymentMethod } from '@courte/contract';
 
 import { auth } from '@/auth';
 import { MALFORMED_ID_ERROR } from '@/consts';
-import { ApiError } from '@/lib/api/client';
 import {
   addBlackout as addBlackoutRequest,
   markNoShow as markNoShowRequest,
   recordPayment as recordPaymentRequest,
   recordWalkIn as recordWalkInRequest,
-} from '@/lib/api/resources';
+} from '@/lib/api';
+import { ApiError } from '@/lib/api/client';
 import { readFormId } from '@/lib/ids';
 
 export type ManageFormState = {

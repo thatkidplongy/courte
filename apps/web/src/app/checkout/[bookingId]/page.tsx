@@ -2,8 +2,8 @@ import { notFound, redirect } from 'next/navigation';
 
 import { auth } from '@/auth';
 import { FieldLabel } from '@/components/atoms/FieldLabel';
+import { fetchBooking } from '@/lib/api';
 import { isNotFound } from '@/lib/api/client';
-import { fetchBooking } from '@/lib/api/resources';
 import { formatDay, formatPesos, formatTime } from '@/lib/format';
 import { parseRouteId } from '@/lib/ids';
 import { confirmBooking } from '@/server-actions/confirmBooking';

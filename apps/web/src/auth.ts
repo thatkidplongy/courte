@@ -3,7 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 
 import { authConfig } from '@/auth.config';
 import { isProduction } from '@/config/env';
-import { upsertIdentity } from '@/lib/api/resources';
+import { upsertIdentity } from '@/lib/api';
 
 /**
  * Central auth per the frontend standards: one module exports { handlers, auth, signIn,

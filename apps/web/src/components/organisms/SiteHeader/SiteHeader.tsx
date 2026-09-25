@@ -5,7 +5,7 @@ import { CourtMark } from '@/components/atoms/Icon';
 import { Button } from '@/components/shadcn/ui/button';
 import { isProduction } from '@/config/env';
 import { PAGE_GUTTER } from '@/consts';
-import { fetchVenueMemberships } from '@/lib/api/resources';
+import { fetchVenueMemberships } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const NAV_LINK_CLASSES = 'text-[13.5px] font-medium text-white/80 transition hover:text-white';
