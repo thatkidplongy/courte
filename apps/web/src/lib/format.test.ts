@@ -7,6 +7,7 @@ import {
   formatHourLabel,
   formatPesos,
   formatTime,
+  formatWeekday,
   formatWholePesos,
 } from './format';
 
@@ -102,5 +103,16 @@ describe('formatClockLabel', () => {
 
   it('hands back anything it cannot parse, so a bad value never renders as "Invalid DateTime"', () => {
     expect(formatClockLabel('tea time')).toBe('tea time');
+  });
+});
+
+describe('formatWeekday', () => {
+  it('indexes the database way, where 0 is Monday rather than Sunday', () => {
+    expect(formatWeekday(0)).toBe('Monday');
+    expect(formatWeekday(6)).toBe('Sunday');
+  });
+
+  it('shows a visibly wrong label rather than undefined for a day outside 0-6', () => {
+    expect(formatWeekday(9)).toBe('Day 9');
   });
 });

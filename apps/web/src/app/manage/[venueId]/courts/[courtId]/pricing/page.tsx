@@ -6,10 +6,9 @@ import { auth } from '@/auth';
 import { BackLink } from '@/components/atoms/BackLink';
 import { PageHeader } from '@/components/molecules/PageHeader';
 import { Panel } from '@/components/molecules/Panel';
-import { formatWeekday } from '@/consts';
 import { fetchCourtPricing } from '@/lib/api';
 import { isNotFound } from '@/lib/api/client';
-import { formatPesos } from '@/lib/format';
+import { formatPesos, formatWeekday } from '@/lib/format';
 import { parseRouteId } from '@/lib/ids';
 import { createPriceRule, deletePriceRule, replaceOpeningWindows } from '@/server-actions/manageInventory';
 

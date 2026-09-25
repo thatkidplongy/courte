@@ -1,5 +1,7 @@
 import { DateTime } from 'luxon';
 
+import { WEEKDAY_LABELS, type Weekday } from '@/consts';
+
 /** ₱1,400.00 from 140000 — money is cents everywhere except the screen. */
 export const formatPesos = (cents: number): string =>
   new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(cents / 100);
@@ -34,3 +36,10 @@ export const formatClockLabel = (time: string): string => {
   const parsed = DateTime.fromFormat(time, 'HH:mm');
   return parsed.isValid ? parsed.toFormat('h:mm a') : time;
 };
+
+/**
+ * The wire type says `number` because JSON has no narrower one; the database's CHECK constraint
+ * says 0–6. The fallback is therefore unreachable, and exists so a bad row surfaces as a visibly
+ * wrong label rather than as `undefined` rendered into the page.
+ */
+export const formatWeekday = (day: number): string => WEEKDAY_LABELS[day as Weekday] ?? `Day ${day}`;
