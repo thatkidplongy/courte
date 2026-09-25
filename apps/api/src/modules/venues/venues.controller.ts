@@ -24,12 +24,18 @@ import { CurrentUserId } from '@/common/currentUser.decorator';
 import { validateWith } from '@/common/zodValidation.pipe';
 import { parseId } from '@/lib/validation';
 
-import { VenuesService } from './venues.service';
+import { VenueDashboardService } from './venueDashboard.service';
+import { VenueDeskService } from './venueDesk.service';
+import { VenueStaffService } from './venueStaff.service';
 
 @Controller('venues')
 @UseGuards(JwtAuthGuard)
 export class VenuesController {
-  constructor(private readonly venues: VenuesService) {}
+  constructor(
+    private readonly dashboard: VenueDashboardService,
+    private readonly desk: VenueDeskService,
+    private readonly staff: VenueStaffService
+  ) {}
 
   /**
    * Declared before ':venueId/...' so the literal segment wins the match — otherwise
@@ -37,7 +43,7 @@ export class VenuesController {
    */
   @Get('memberships')
   listMemberships(@CurrentUserId() userId: number): Promise<VenueMembershipSummary[]> {
-    return this.venues.listMemberships(userId);
+    return this.dashboard.listMemberships(userId);
   }
 
   @Get(':venueId/dashboard')
@@ -46,7 +52,7 @@ export class VenuesController {
     @Param('venueId') venueId: string,
     @Query(validateWith(dashboardQuerySchema)) query: DashboardQuery
   ): Promise<VenueDashboardResponse> {
-    return this.venues.getDashboard(userId, parseId(venueId, 'venueId'), query.fromIso, query.toIso);
+    return this.dashboard.getDashboard(userId, parseId(venueId, 'venueId'), query.fromIso, query.toIso);
   }
 
   @Post(':venueId/walk-ins')
@@ -56,7 +62,7 @@ export class VenuesController {
     @Param('venueId') venueId: string,
     @Body(validateWith(recordWalkInBodySchema)) body: RecordWalkInBody
   ): Promise<RecordWalkInResponse> {
-    return this.venues.recordWalkIn(userId, parseId(venueId, 'venueId'), body);
+    return this.desk.recordWalkIn(userId, parseId(venueId, 'venueId'), body);
   }
 
   @Post(':venueId/blackouts')
@@ -66,7 +72,7 @@ export class VenuesController {
     @Param('venueId') venueId: string,
     @Body(validateWith(addBlackoutBodySchema)) body: AddBlackoutBody
   ): Promise<void> {
-    return this.venues.addBlackout(userId, parseId(venueId, 'venueId'), body);
+    return this.desk.addBlackout(userId, parseId(venueId, 'venueId'), body);
   }
 
   @Post(':venueId/payments')
@@ -76,7 +82,7 @@ export class VenuesController {
     @Param('venueId') venueId: string,
     @Body(validateWith(recordPaymentBodySchema)) body: RecordPaymentBody
   ): Promise<RecordPaymentResponse> {
-    return this.venues.recordPayment(userId, parseId(venueId, 'venueId'), body);
+    return this.desk.recordPayment(userId, parseId(venueId, 'venueId'), body);
   }
 
   /**
@@ -91,12 +97,12 @@ export class VenuesController {
     @Param('venueId') venueId: string,
     @Body(validateWith(markNoShowBodySchema)) body: MarkNoShowBody
   ): Promise<void> {
-    return this.venues.markNoShow(userId, parseId(venueId, 'venueId'), body.bookingId);
+    return this.desk.markNoShow(userId, parseId(venueId, 'venueId'), body.bookingId);
   }
 
   @Get(':venueId/staff')
   listStaff(@CurrentUserId() userId: number, @Param('venueId') venueId: string): Promise<VenueStaffMember[]> {
-    return this.venues.listStaff(userId, parseId(venueId, 'venueId'));
+    return this.staff.listStaff(userId, parseId(venueId, 'venueId'));
   }
 
   @Post(':venueId/staff')
@@ -106,7 +112,7 @@ export class VenuesController {
     @Param('venueId') venueId: string,
     @Body(validateWith(addVenueMemberBodySchema)) body: AddVenueMemberBody
   ): Promise<void> {
-    return this.venues.addStaff(userId, parseId(venueId, 'venueId'), body);
+    return this.staff.addStaff(userId, parseId(venueId, 'venueId'), body);
   }
 
   @Delete(':venueId/staff/:memberId')
@@ -116,6 +122,6 @@ export class VenuesController {
     @Param('venueId') venueId: string,
     @Param('memberId') memberId: string
   ): Promise<void> {
-    return this.venues.removeStaff(userId, parseId(venueId, 'venueId'), parseId(memberId, 'memberId'));
+    return this.staff.removeStaff(userId, parseId(venueId, 'venueId'), parseId(memberId, 'memberId'));
   }
 }

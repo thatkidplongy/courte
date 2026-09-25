@@ -49,7 +49,7 @@ const toSummary = (rule: PriceRule): PriceRuleSummary => ({
 /**
  * What a venue sells, when it is open, and what it costs — the owner's side of the inventory.
  *
- * Kept apart from `VenuesService`, which runs the desk: taking a walk-in and changing the price
+ * Kept apart from `VenueDeskService`, which runs the desk: taking a walk-in and changing the price
  * list are different jobs done by different people, and the permission map already says so
  * (`recordWalkIn` is staff, `managePricing` is owner-only).
  *
