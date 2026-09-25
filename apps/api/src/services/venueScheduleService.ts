@@ -4,7 +4,8 @@ import type { VenueScheduleCourt, VenueScheduleResponse } from '@courte/contract
 
 import { HOURS_PER_DAY, MINUTES_PER_HOUR, MS_PER_MINUTE, RECENT_REVIEWS_ON_VENUE_PAGE } from '@/consts';
 import { findAmenitiesForVenue } from '@/db/repositories/amenityRepository';
-import { findCourtById, findCourtsByVenue, findOpeningWindowsForCourts } from '@/db/repositories/courtRepository';
+import { findCourtById, findCourtsByVenue } from '@/db/repositories/courtRepository';
+import { findOpeningWindowsForCourts } from '@/db/repositories/openingWindowRepository';
 import { findPriceRulesForCourts } from '@/db/repositories/priceRuleRepository';
 import { findRecentReviewsForVenue, findVenueRating } from '@/db/repositories/reviewRepository';
 import { findVenuePhotos, findVenueSummary } from '@/db/repositories/venueRepository';

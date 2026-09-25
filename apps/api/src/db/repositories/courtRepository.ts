@@ -3,14 +3,11 @@ import {
   DEFAULT_PAGE,
   type CourtSort,
   type CourtSurface,
-  type OpeningWindowSummary,
   type Sport,
   type VenuePhoto,
 } from '@courte/contract';
 
-import { query, withTransaction } from '@/db/client';
-import type { OpeningWindow } from '@/domain/availability/types';
-import type { SoldSlot } from '@/domain/schedule/assertWindowsCoverBookings';
+import { query } from '@/db/client';
 
 /**
  * Repositories build and run queries and do nothing else. No branching on a flag parameter to
@@ -413,109 +410,4 @@ export const setCourtArchived = async (courtId: number, isArchived: boolean): Pr
     isArchived ? new Date().toISOString() : null,
   ]);
   return rows.length > 0;
-};
-
-type OpeningWindowRow = {
-  court_id: number;
-  day_of_week: number;
-  starts_at: string;
-  duration_minutes: number;
-};
-
-/**
- * Bulk-loaded for every court in a search at once. Fetching these per court is the N+1 that
- * makes the results page slow, and it is the reason this takes an array.
- */
-export const findOpeningWindowsForCourts = async (courtIds: number[]): Promise<OpeningWindow[]> => {
-  if (courtIds.length === 0) return [];
-
-  const rows = await query<OpeningWindowRow>(
-    `
-    SELECT court_id, day_of_week, starts_at::text AS starts_at, duration_minutes
-    FROM "OpeningWindow"
-    WHERE court_id = ANY($1::bigint[])
-    ORDER BY court_id, day_of_week, starts_at
-    `,
-    [courtIds]
-  );
-
-  return rows.map(row => ({
-    courtId: row.court_id,
-    dayOfWeek: row.day_of_week,
-    startsAt: row.starts_at,
-    durationMinutes: row.duration_minutes,
-  }));
-};
-
-export const findOpeningWindowsForCourt = async (courtId: number): Promise<OpeningWindowSummary[]> => {
-  const rows = await query<OpeningWindowSummary & { starts_at: string }>(
-    `
-    SELECT id, day_of_week AS "dayOfWeek", starts_at::text AS starts_at, duration_minutes AS "durationMinutes"
-    FROM "OpeningWindow"
-    WHERE court_id = $1
-    ORDER BY day_of_week, starts_at
-    `,
-    [courtId]
-  );
-
-  // Postgres hands back 'HH:MM:SS'; the contract's shape is 'HH:MM', which is what a form posts.
-  return rows.map(row => ({ ...row, startsAt: row.starts_at.slice(0, 5) }));
-};
-
-/**
- * Replace, not merge — the caller sends the whole week and gets the whole week. In one
- * transaction, so a failed insert cannot leave a court with no hours at all, which would read
- * to every player as permanently closed.
- */
-export const replaceOpeningWindows = async (
-  courtId: number,
-  windows: Array<{ dayOfWeek: number; startsAt: string; durationMinutes: number }>
-): Promise<void> => {
-  await withTransaction(async client => {
-    await client.query('DELETE FROM "OpeningWindow" WHERE court_id = $1', [courtId]);
-    if (windows.length === 0) return;
-
-    // One statement with unnested arrays rather than a loop: a week is up to seven round trips
-    // otherwise, inside a transaction holding a lock the whole time.
-    await client.query(
-      `
-      INSERT INTO "OpeningWindow" (court_id, day_of_week, starts_at, duration_minutes)
-      SELECT $1, day, start_at::time, minutes
-      FROM unnest($2::int[], $3::text[], $4::int[]) AS w(day, start_at, minutes)
-      `,
-      [
-        courtId,
-        windows.map(window => window.dayOfWeek),
-        windows.map(window => window.startsAt),
-        windows.map(window => window.durationMinutes),
-      ]
-    );
-  });
-};
-
-/**
- * Future play on a court that is already sold. Feeds the guard that refuses opening hours which
- * would strand a booking outside them — holds count, because a hold is somebody at checkout.
- */
-export const findFutureSoldSlots = async (courtId: number, from: Date): Promise<SoldSlot[]> => {
-  const rows = await query<{ booking_id: number; play_start: string; play_end: string }>(
-    `
-    SELECT r.booking_id, lower(r.play_during)::text AS play_start, upper(r.play_during)::text AS play_end
-    FROM "Reservation" r
-    JOIN "Booking" b ON b.id = r.booking_id
-    WHERE r.court_id = $1
-      AND r.state = 'active'
-      AND r.kind IN ('booking', 'hold')
-      AND b.status IN ('pending', 'confirmed')
-      AND lower(r.play_during) >= $2
-    ORDER BY lower(r.play_during)
-    `,
-    [courtId, from.toISOString()]
-  );
-
-  return rows.map(row => ({
-    bookingId: row.booking_id,
-    start: new Date(row.play_start).getTime(),
-    end: new Date(row.play_end).getTime(),
-  }));
 };

@@ -1,4 +1,4 @@
-import { findOpeningWindowsForCourts } from '@/db/repositories/courtRepository';
+import { findOpeningWindowsForCourts } from '@/db/repositories/openingWindowRepository';
 import { findBlockedIntervals } from '@/db/repositories/reservationRepository';
 import { findVenueTimezones } from '@/db/repositories/venueRepository';
 import { getAvailability } from '@/domain/availability/getAvailability';

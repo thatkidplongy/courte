@@ -12,13 +12,12 @@ import type {
 import {
   findCourtForOwner,
   findCourtsForOwner,
-  findFutureSoldSlots,
-  findOpeningWindowsForCourt,
   insertCourt,
-  replaceOpeningWindows,
   setCourtArchived,
   updateCourt,
 } from '@/db/repositories/courtRepository';
+import { findOpeningWindowsForCourt, replaceOpeningWindows } from '@/db/repositories/openingWindowRepository';
+import { findFutureSoldSlots } from '@/db/repositories/reservationRepository';
 import { membershipReader } from '@/db/repositories/membershipRepository';
 import {
   deletePriceRule,

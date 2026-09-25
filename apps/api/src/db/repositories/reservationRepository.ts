@@ -4,6 +4,7 @@ import type { ReservationKind, ReservationState } from '@courte/contract';
 
 import { query } from '@/db/client';
 import type { BlockedInterval } from '@/domain/availability/types';
+import type { SoldSlot } from '@/domain/schedule/assertWindowsCoverBookings';
 
 type ReservationRow = {
   id: number;
@@ -165,4 +166,31 @@ export const releaseExpiredHolds = async (): Promise<Reservation[]> => {
   );
 
   return rows.map(toReservation);
+};
+
+/**
+ * Future play on a court that is already sold. Feeds the guard that refuses opening hours which
+ * would strand a booking outside them — holds count, because a hold is somebody at checkout.
+ */
+export const findFutureSoldSlots = async (courtId: number, from: Date): Promise<SoldSlot[]> => {
+  const rows = await query<{ booking_id: number; play_start: string; play_end: string }>(
+    `
+    SELECT r.booking_id, lower(r.play_during)::text AS play_start, upper(r.play_during)::text AS play_end
+    FROM "Reservation" r
+    JOIN "Booking" b ON b.id = r.booking_id
+    WHERE r.court_id = $1
+      AND r.state = 'active'
+      AND r.kind IN ('booking', 'hold')
+      AND b.status IN ('pending', 'confirmed')
+      AND lower(r.play_during) >= $2
+    ORDER BY lower(r.play_during)
+    `,
+    [courtId, from.toISOString()]
+  );
+
+  return rows.map(row => ({
+    bookingId: row.booking_id,
+    start: new Date(row.play_start).getTime(),
+    end: new Date(row.play_end).getTime(),
+  }));
 };
