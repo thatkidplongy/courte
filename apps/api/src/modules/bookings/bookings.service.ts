@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import type { BookingSummary, Paginated, PlaceHoldBody, PlaceHoldResponse } from '@courte/contract';
 
 import { env } from '@/config/env';

@@ -1,4 +1,5 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+
 import { upsertIdentityBodySchema, type UpsertIdentityBody, type UpsertIdentityResponse } from '@courte/contract';
 
 import { ServiceKeyGuard } from '@/common/auth.guards';

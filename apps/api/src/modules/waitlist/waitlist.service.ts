@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import type { JoinWaitlistBody, WaitlistEntry } from '@courte/contract';
 
 import { findCourtById } from '@/db/repositories/courtRepository';

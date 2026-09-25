@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import type { CreateSeriesBody, CreateSeriesResponse } from '@courte/contract';
 
 import { env } from '@/config/env';

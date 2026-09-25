@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { DateTime } from 'luxon';
+
 import {
   SEARCH_DEFAULTS,
   TIME_FILTER_CANDIDATE_CAP,
@@ -8,7 +10,6 @@ import {
   type SearchCourtsQuery,
   type VenueScheduleResponse,
 } from '@courte/contract';
-import { DateTime } from 'luxon';
 
 import { MAX_SLOTS_PER_DAY, SLOT_CHIPS_PER_CARD } from '@/consts';
 import { findCourtById, searchCourtsByProximity, type CourtSearchResult } from '@/db/repositories/courtRepository';
@@ -16,8 +17,8 @@ import { findVenueTimezones } from '@/db/repositories/venueRepository';
 import { canStartAt } from '@/domain/availability/canStartAt';
 import { listStartTimes } from '@/domain/availability/listStartTimes';
 import type { Interval } from '@/domain/availability/types';
-import { buildVenueRating } from '@/domain/reviews/buildVenueRating';
 import { NotFoundError } from '@/domain/errors';
+import { buildVenueRating } from '@/domain/reviews/buildVenueRating';
 import { getAvailabilityForCourts } from '@/services/availabilityService';
 import { getVenueSchedule } from '@/services/venueScheduleService';
 

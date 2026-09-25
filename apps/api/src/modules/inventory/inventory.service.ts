@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import type {
   CourtPricingResponse,
   OpeningWindowSummary,
@@ -16,9 +17,8 @@ import {
   setCourtArchived,
   updateCourt,
 } from '@/db/repositories/courtRepository';
-import { findOpeningWindowsForCourt, replaceOpeningWindows } from '@/db/repositories/openingWindowRepository';
-import { findFutureSoldSlots } from '@/db/repositories/reservationRepository';
 import { membershipReader } from '@/db/repositories/membershipRepository';
+import { findOpeningWindowsForCourt, replaceOpeningWindows } from '@/db/repositories/openingWindowRepository';
 import {
   deletePriceRule,
   findPriceRuleById,
@@ -26,6 +26,7 @@ import {
   insertPriceRule,
   updatePriceRule,
 } from '@/db/repositories/priceRuleRepository';
+import { findFutureSoldSlots } from '@/db/repositories/reservationRepository';
 import { findVenueSummary } from '@/db/repositories/venueRepository';
 import { requireVenueAction } from '@/domain/authz/venueAccess';
 import { NotFoundError } from '@/domain/errors';

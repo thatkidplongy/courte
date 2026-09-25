@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+
 import { joinWaitlistBodySchema, type JoinWaitlistBody, type WaitlistEntry } from '@courte/contract';
 
 import { JwtAuthGuard } from '@/common/auth.guards';

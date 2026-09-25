@@ -7,6 +7,7 @@
   "arrowParens": "avoid",
   "endOfLine": "lf",
   "plugins": ["@ianvs/prettier-plugin-sort-imports", "prettier-plugin-tailwindcss"],
+  "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
   "importOrder": [
     "^(react|react-dom)(.*)$",
     "",

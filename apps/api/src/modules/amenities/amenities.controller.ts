@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+
 import type { Amenity } from '@courte/contract';
 
 import { listAmenities } from '@/db/repositories/amenityRepository';

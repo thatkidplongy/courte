@@ -1,4 +1,5 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+
 import { createSeriesBodySchema, type CreateSeriesBody, type CreateSeriesResponse } from '@courte/contract';
 
 import { JwtAuthGuard } from '@/common/auth.guards';

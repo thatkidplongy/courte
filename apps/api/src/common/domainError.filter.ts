@@ -1,6 +1,7 @@
 import { Catch, HttpException, HttpStatus, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common';
-import type { ApiErrorBody } from '@courte/contract';
 import type { Request, Response } from 'express';
+
+import type { ApiErrorBody } from '@courte/contract';
 
 import { DomainError, ERROR_CODES, type ErrorCode } from '@/domain/errors';
 import { logger } from '@/lib/logger';
